@@ -1,0 +1,165 @@
+[
+    {
+        "id": "5e7853464fdac029",
+        "type": "tab",
+        "label": "Flow 2",
+        "disabled": true,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "e81114c06b79f5a9",
+        "type": "function",
+        "z": "5e7853464fdac029",
+        "name": "",
+        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    \n    msg.POI = getNearestPOI(msg.x, msg.y);\n    return msg;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 280,
+        "wires": [
+            [
+                "5579f5923af204e6"
+            ]
+        ]
+    },
+    {
+        "id": "30cd086a896a22e8",
+        "type": "csv",
+        "z": "5e7853464fdac029",
+        "name": "",
+        "sep": ",",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 510,
+        "y": 360,
+        "wires": [
+            [
+                "e81114c06b79f5a9"
+            ]
+        ]
+    },
+    {
+        "id": "9ec25bf10237fa2f",
+        "type": "inject",
+        "z": "5e7853464fdac029",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.0",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 290,
+        "y": 340,
+        "wires": [
+            [
+                "fc9c82bf362a1e2b"
+            ]
+        ]
+    },
+    {
+        "id": "fc9c82bf362a1e2b",
+        "type": "file in",
+        "z": "5e7853464fdac029",
+        "name": "POI-File",
+        "filename": "C:\\Users\\franc\\Documents\\MiddlewareTech\\MiddlewareTech2022\\Node-Red\\POI.txt",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 300,
+        "y": 420,
+        "wires": [
+            [
+                "30cd086a896a22e8"
+            ]
+        ]
+    },
+    {
+        "id": "5579f5923af204e6",
+        "type": "debug",
+        "z": "5e7853464fdac029",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "POI",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 860,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "069e4471bdf5891d",
+        "type": "function",
+        "z": "5e7853464fdac029",
+        "name": "",
+        "func": "m = {\n    topic : \"POI\",\n    x:  Math.random()*10000 - 5000,\n    y:  Math.random()*10000 - 5000,\n    noise:  Math.random()*80 + 30,\n    timestamp:  Date.now()\n};\nreturn m;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 180,
+        "wires": [
+            [
+                "e81114c06b79f5a9"
+            ]
+        ]
+    },
+    {
+        "id": "c95e41320c0f5f73",
+        "type": "inject",
+        "z": "5e7853464fdac029",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "5",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 160,
+        "wires": [
+            [
+                "069e4471bdf5891d"
+            ]
+        ]
+    }
+]

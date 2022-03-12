@@ -1,0 +1,15 @@
+Name,x,y
+Colosseo,0,0
+Altare della Pace,100,200
+Monumento Vittorio Emanuele II,500,300
+Pantheon,1200,100
+Castel Sant'Angelo,-200,-300
+Ponte Sant'Angelo,-250,-400
+Piramide Cestia,-1000,-500
+Terme di Caracalle,-700,400
+Circo Massimo,2000,-300
+Foro Romano,1500,-3000
+Fori Imperiali,10,-3000
+Mercati di Traiano,-2000,700
+Tempio di Giove,1500,-1500
+Porta Pia,4000,-2000
