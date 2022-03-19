@@ -1,15 +1,14 @@
-Name,x,y
-Colosseo,0,0
-Altare della Pace,100,200
-Monumento Vittorio Emanuele II,500,300
-Pantheon,1200,100
-Castel Sant'Angelo,-200,-300
-Ponte Sant'Angelo,-250,-400
-Piramide Cestia,-1000,-500
-Terme di Caracalle,-700,400
-Circo Massimo,2000,-300
-Foro Romano,1500,-3000
-Fori Imperiali,10,-3000
-Mercati di Traiano,-2000,700
-Tempio di Giove,1500,-1500
-Porta Pia,4000,-2000
+Region,Name,x,y
+Lazio,Colosseo,41.890266,12.492258
+Lazio,Altare della Pace,41.895229,12.482793
+Lazio,Pantheon,41.899269,12.476728
+Lazio,Castel Sant'Angelo,41.903295,12.466673
+Lazio,Ponte Sant'Angelo,41.901878,12.466450
+Lazio,Piramide Cestia,41.876401,12.481116
+Lazio,Terme di Caracalla,41.878886,12.492568
+Lazio,Circo Massimo,41.886189,12.484608
+Lazio,Foro Romano,41.892469,12.485092
+Lazio,Fori Di Augusto,41.894326,12.487027
+Lazio,Mercati di Traiano,41.895453,12.485908
+Lazio,Tempio di Giove,41.892377,12.482344
+Lazio,Porta Pia,41.909133,12.500948

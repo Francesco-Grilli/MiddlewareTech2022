@@ -3,7 +3,7 @@
         "id": "5e7853464fdac029",
         "type": "tab",
         "label": "Flow 2",
-        "disabled": true,
+        "disabled": false,
         "info": "",
         "env": []
     },
@@ -12,7 +12,7 @@
         "type": "function",
         "z": "5e7853464fdac029",
         "name": "",
-        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    \n    message = {payload : {\n                    info : msg.info,\n                    POI : getNearestPOI(msg.info.x, msg.info.y)}\n    };\n    return message;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\n",
+        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    \n    /*json = \"{ info: \" + JSON.stringify(msg.info) + \n            \", POI : \" + \n            JSON.stringify(getNearestPOI(msg.info.x, msg.info.y)) + \"}\";\n    \n    message = {payload : json.toString()};\n\n    message.payload = message.payload + \"\\n\";*/\n    \n    POI = getNearestPOI(msg.info.x, msg.info.y)\n    noises = [msg.info.noise];\n    \n    json = {noise : noises, \n            timestamp : msg.info.timestamp, \n            POIRegion : POI.Region,\n            POIName : POI.Name};\n            \n    \n    message = {payload : JSON.stringify(json)}\n    message.payload = message.payload + \"\\n\";\n    \n    return message;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -23,7 +23,7 @@
         "wires": [
             [
                 "1a92162f1f6a1ef9",
-                "eb2c5896721d5945"
+                "bc460d9782c497e9"
             ]
         ]
     },
@@ -84,7 +84,7 @@
         "type": "file in",
         "z": "5e7853464fdac029",
         "name": "POI-File",
-        "filename": "C:\\Users\\franc\\Documents\\MiddlewareTech\\MiddlewareTech2022\\Node-Red\\POI.txt",
+        "filename": "C:\\Users\\franc\\Documents\\MiddlewareTech\\MiddlewareTech2022\\Project1-Node-Red\\POI.txt",
         "format": "utf8",
         "chunk": false,
         "sendError": false,
@@ -131,14 +131,14 @@
                 "vt": "str"
             }
         ],
-        "repeat": "10",
+        "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
         "payload": "",
         "payloadType": "date",
-        "x": 150,
+        "x": 140,
         "y": 160,
         "wires": [
             [
@@ -161,24 +161,6 @@
         "statusType": "auto",
         "x": 1050,
         "y": 640,
-        "wires": []
-    },
-    {
-        "id": "eb2c5896721d5945",
-        "type": "mqtt out",
-        "z": "5e7853464fdac029",
-        "name": "",
-        "topic": "prova",
-        "qos": "",
-        "retain": "",
-        "respTopic": "",
-        "contentType": "",
-        "userProps": "",
-        "correl": "",
-        "expiry": "",
-        "broker": "061da9aabdc50d41",
-        "x": 830,
-        "y": 120,
         "wires": []
     },
     {
@@ -222,57 +204,22 @@
         "x": 580,
         "y": 100,
         "wires": [
-            [
-                "eb2c5896721d5945"
-            ]
-        ]
-    },
-    {
-        "id": "7f0246abcaff27af",
-        "type": "aedes broker",
-        "z": "5e7853464fdac029",
-        "name": "Broker",
-        "mqtt_port": 1883,
-        "mqtt_ws_bind": "port",
-        "mqtt_ws_port": "",
-        "mqtt_ws_path": "",
-        "cert": "",
-        "key": "",
-        "certname": "",
-        "keyname": "",
-        "dburl": "",
-        "usetls": false,
-        "x": 810,
-        "y": 440,
-        "wires": [
-            [],
             []
         ]
     },
     {
-        "id": "061da9aabdc50d41",
-        "type": "mqtt-broker",
+        "id": "bc460d9782c497e9",
+        "type": "tcp out",
+        "z": "5e7853464fdac029",
         "name": "",
-        "broker": "tcp://localhost",
-        "port": "1883",
-        "clientid": "",
-        "autoConnect": true,
-        "usetls": false,
-        "protocolVersion": "4",
-        "keepalive": "60",
-        "cleansession": true,
-        "birthTopic": "",
-        "birthQos": "0",
-        "birthPayload": "",
-        "birthMsg": {},
-        "closeTopic": "",
-        "closeQos": "0",
-        "closePayload": "",
-        "closeMsg": {},
-        "willTopic": "",
-        "willQos": "0",
-        "willPayload": "",
-        "willMsg": {},
-        "sessionExpiry": ""
+        "host": "tcp://localhost",
+        "port": "9999",
+        "beserver": "server",
+        "base64": false,
+        "end": false,
+        "tls": "",
+        "x": 840,
+        "y": 120,
+        "wires": []
     }
 ]
