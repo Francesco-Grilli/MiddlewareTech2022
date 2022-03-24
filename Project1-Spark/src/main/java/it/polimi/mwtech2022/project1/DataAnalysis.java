@@ -1,22 +1,16 @@
 package it.polimi.mwtech2022.project1;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import it.polimi.mwtech2022.project1.utils.LogUtils;
 import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.streaming.StreamingQuery;
-import org.apache.spark.sql.streaming.StreamingQueryException;
-import scala.Tuple2;
-import scala.Tuple3;
+import org.apache.spark.sql.*;
+import org.apache.spark.sql.streaming.*;
+import scala.Tuple5;
 
+import java.sql.Date;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.TimeoutException;
-
-import static org.apache.spark.sql.functions.*;
 
 public class DataAnalysis {
 
@@ -29,7 +23,9 @@ public class DataAnalysis {
         final String socketHost = args.length > 1 ? args[1] : "localhost";
         final int socketPort = args.length > 2 ? Integer.parseInt(args[2]) : 9999;
         final String filePath = args.length > 3 ? args[3] : "./";
-        final int threshold = args.length > 4 ? Integer.parseInt(args[4]) : 50;
+        final String brokerUrl = args.length > 4 ? args[4] : "tcp://mqtt.neslab.it:3200";
+        final String topic = args.length > 5 ? args[5] : "gblgrlmnn/try/ciao";
+//        final int threshold = args.length > 4 ? Integer.parseInt(args[4]) : 50;
 
         final SparkSession spark = SparkSession
                 .builder()
@@ -39,37 +35,47 @@ public class DataAnalysis {
 
         // requires inputs as pairs (POI, noise level)
 
-        final Dataset<Row> input = spark
+        final Dataset<String> input = spark
                 .readStream()
                 .format("socket")
                 .option("host", socketHost)
                 .option("port", socketPort)
-//                .format("rate")
-//                .option("rowPerSecond", 5)
-//                .option("delimiter", ",")
-                .load();
+                .load()
+                .as(Encoders.STRING());
 //        input.printSchema();
 
         // may want to define splitting function aside (out of the map operator)
         // works correctly with strings like "[string],[int]"
         // TODO needs check for cleaning purposes!!
+        // sent message (sample):
+        // {"noise":[42.662951293850554],"timestamp":1648141178047,"POIRegion":"Lazio","POIName":"Terme di Caracalla"}
+
         final Dataset<Row> poiNoise = input
                 .as(Encoders.STRING())
-                .map((MapFunction<String, Tuple3<String, Integer, Timestamp>>) x -> {
-                    List<String> stringList = Arrays.asList(x.split(","));
-                    try{
-                        if (stringList.size() == 2)
-                            return new Tuple3<>(stringList.get(0),
-                                    Integer.parseInt(stringList.get(1)),
-                                    new Timestamp(System.currentTimeMillis())); // TODO replace with actual ts
-                    } catch (Exception e){}
-                    return null;
-                }, Encoders.tuple(Encoders.STRING(), Encoders.INT(), Encoders.TIMESTAMP()))
-                .toDF("poi", "noise-value", "timestamp");
+                .map((MapFunction<String, Tuple5<String, String, Timestamp, Date, Double>>) x -> {
+                    Gson gson = new Gson();
+                    JsonObject jsonRow = gson.fromJson(x, JsonObject.class);
+                    Tuple5<String, String, Timestamp, Date, Double> row;
+                    try {
+                        String region = jsonRow.get("POIRegion").getAsString();
+                        String name = jsonRow.get("POIName").getAsString();
+                        Timestamp ts = new Timestamp(jsonRow.get("timestamp").getAsLong());
+                        Date date = new Date(jsonRow.get("timestamp").getAsLong());
+                        Double noise = jsonRow.get("noise").getAsJsonArray().get(0).getAsDouble(); //at the moment only gets the first element in the array
+                        row = new Tuple5<>(name, region, ts, date, noise);
+                    } catch (Exception e){
+                        e.printStackTrace();
+                        return null;
+                    }
+                    return row;
+                }, Encoders.tuple(Encoders.STRING(), Encoders.STRING(), Encoders.TIMESTAMP(), Encoders.DATE(),Encoders.DOUBLE()))
+                .toDF("POIName", "POIRegion", "Timestamp", "Date", "Noise");
 
         poiNoise.printSchema();
 
-        poiNoise.withWatermark("timestamp", "1 hour");
+//        poiNoise.withWatermark("timestamp", "1 hour");
+
+
 
 //        The backend periodically computes the following metrics:
 //        1. hourly, daily, and weekly moving average of noise level, for each point of interest;
@@ -83,6 +89,7 @@ public class DataAnalysis {
 
         //TODO: serious testing of these functions (the first one seems to work)
         //TODO: need these functions with windows or related to specific hours/day/weeks?
+/*
         final Dataset<Row> hourlyAverages = poiNoise
                 .groupBy(window(col("timestamp"), "1 hour", "5 minutes"),
                             col("poi"))
@@ -126,11 +133,12 @@ public class DataAnalysis {
                 .toDF("poi", "streak")
                 .groupBy("poi")
                 .min("streak");
+*/
 
-        final StreamingQuery query = lastTimeOverThreshold
+        final StreamingQuery query = poiNoise
                 .writeStream()
                 .format("console")
-                .outputMode("complete")
+                .outputMode("update")
                 .start();
 
         try {
@@ -140,7 +148,6 @@ public class DataAnalysis {
         }
 
         spark.close();
-
     }
 
 
