@@ -2,15 +2,19 @@ package it.polimi.mwtech2022.project1;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import it.polimi.mwtech2022.project1.utils.LogUtils;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.internal.config.R;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.expressions.Window;
 import org.apache.spark.sql.expressions.WindowSpec;
 import org.apache.spark.sql.streaming.*;
+import org.json4s.jackson.Json;
 import scala.Tuple2;
+import scala.Tuple4;
 import scala.Tuple5;
 
 import java.sql.Date;
@@ -28,7 +32,7 @@ public class DataAnalysis {
     public static void main(String[] args) throws TimeoutException {
         LogUtils.setLogLevel();
 
-        final String master = args.length > 0 ? args[0] : "local[4]";
+        final String master = args.length > 0 ? args[0] : "local[8]";
         final String socketHost = args.length > 1 ? args[1] : "localhost";
         final int socketPort = args.length > 2 ? Integer.parseInt(args[2]) : 9999;
         final String filePath = args.length > 3 ? args[3] : "./";
@@ -43,14 +47,25 @@ public class DataAnalysis {
         // expected input (sample)
         // {"noise":[42.662951293850554],"timestamp":1648141178047,"POIRegion":"Lazio","POIName":"Terme di Caracalla"}
 
-        final Dataset<String> input = spark
+        final Dataset<Row> input = spark
                 .readStream()
-                .format("socket")
-                .option("host", socketHost)
-                .option("port", socketPort)
+                .format("kafka")
+                .option("kafka.bootstrap.servers", "localhost:9092")
+                .option("subscribe", "nodered-try")
                 .load()
-                .as(Encoders.STRING());
-//        input.printSchema();
+                //explicit deserialization to String
+                //remove this line to print on screen also partitions, offsets, ...
+                //as of 27/04/22 key is not necessary as it arrives empty
+                .selectExpr("CAST(value AS STRING)");
+
+//        final Dataset<Row> fiveMinInput = spark
+//                .readStream()
+//                .format("kafka")
+//                .option("kafka.bootstrap.servers", "localhost:9092")
+//                .option("subscribe", "nodered-try")
+//                .load()
+//                .selectExpr("CAST(value AS STRING)");
+
 
         // may want to define splitting function aside (out of the map operator)
         // TODO needs check for cleaning purposes!!
@@ -77,11 +92,10 @@ public class DataAnalysis {
                 }, Encoders.tuple(Encoders.STRING(), Encoders.STRING(), Encoders.TIMESTAMP(), Encoders.LONG(), Encoders.DOUBLE()))
                 .toDF("POIName", "POIRegion", "Timestamp", "TSLong", "Noise");
 
-        poiNoise.printSchema();
+//        poiNoise.printSchema();
 
         // needs timestamp type column
-        poiNoise.withWatermark("timestamp", "1 hour");
-
+//        poiNoise.withWatermark("timestamp", "1 minutes");
 
 //        The backend periodically computes the following metrics:
 //        1. hourly, daily, and weekly moving average of noise level, for each point of interest;
@@ -93,63 +107,112 @@ public class DataAnalysis {
 //            ○ at any given point in time, the query should compute the point (or points) of interest with the
 //              longest stream.
 
-        // TODO: serious testing of these functions (the first one seems to work)
-        // testing OK
-        final Dataset<Row> hourlyAverages = poiNoise
-                .groupBy(window(col("Timestamp"), "1 hour", "5 minutes"),
-                        col("POIName"))
-                .avg("Noise");
-        hourlyAverages.printSchema();
-
-        //needs fixing
-//        final Dataset<Row> lastHour = hourlyAverages
-//                .select("window.end")
-//                .filter((col("window.end").cast("long")).leq(System.currentTimeMillis()))
-//                .orderBy(asc("window.end"));
-//                .limit(1);
-
-        // how to test this thing?? all the values I can get are in the last hour
-        // OK
-//        final Dataset<Row> lastHourAverages = hourlyAverages
-//                .filter(col("window").equals(lastHour.first().get(0)))
-//                .filter(col("TSLong").geq(System.currentTimeMillis() - 60 * 60 * 1000)) //millis in an hour
-//                .groupBy(col("POIName"))
+        //TODO: check flatmap function for exceptions
+        final Dataset<Row> fiveMinuteAvg = poiNoise
+                .withColumn("count", lit(1))
+                .withWatermark("timestamp", "1 minute")
+                .groupBy(window(col("timestamp"), "1 minutes", "1 minute"),
+                        col("POIName")) // assuming unique POINames
+                .agg(avg("Noise"), sum("count"))
+                .select(col("POIName"), col("window.start"), col("avg(Noise)"), col("sum(count)"))
+                .map((MapFunction<Row, Tuple2<String, String>>) x->{
+                    JsonObject outObj = new JsonObject();
+                    outObj.addProperty("timestamp", ((Timestamp)(x.get(1))).getTime());
+                    outObj.addProperty("avgNoise", x.get(2).toString());
+                    outObj.addProperty("count", x.get(3).toString());
+                    Gson gson = new Gson();
+                    return new Tuple2<>((String) x.get(0), gson.toJson(outObj));
+                }, Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+                .toDF("key", "value");
+//        fiveMinuteAvg.printSchema();
+//
+//        // testing OK
+//        final Dataset<Row> hourlyAverages = poiNoise
+//                .groupBy(window(col("Timestamp"), "1 hour", "5 minutes"),
+//                        col("POIName")) // assuming unique POINames
 //                .avg("Noise");
-//                .select(col("POIName"), col("avg(Noise)"));
-
-//        final Dataset<Row> lastHourTop10 = lastHourAverages
-//                .orderBy(col("avg(noise-value)"))
-//                .limit(10);
+////        hourlyAverages.printSchema();
+//
+//        // TODO: needs fixing
+//        final Dataset<Row> lastHour = hourlyAverages
+////                .withColumn("w_start", col("window.start"))
+//                .withColumn("w_end", col("window.end"))
+////                .select(col("w_start"), col("w_end"), col("POIName"), col("max(Noise)"))
+//                .select(col("w_end"))
+//                .orderBy(desc("w_end"))
+//                .distinct();
+////                .limit(1);
+//
+//
+//        // how to test this thing?? all the values I can get are in the last hour
+//        // OK
+////        final Dataset<Row> lastHourAverages = hourlyAverages
+////                .filter(col("window").equals(lastHour.first().get(0)))
+////                .filter(col("TSLong").geq(System.currentTimeMillis() - 60 * 60 * 1000)) //millis in an hour
+////                .groupBy(col("POIName"))
+////                .avg("Noise");
+////                .select(col("POIName"), col("avg(Noise)"));
+//
+////        final Dataset<Row> lastHourTop10 = lastHourAverages
+////                .orderBy(col("avg(noise-value)"))
+////                .limit(10);
+////
+//        // testing OK
+//        final Dataset<Row> dailyAverages = poiNoise
+//                .groupBy(window(col("Timestamp"), "1 day", "1 hour"),
+//                        col("POIName"))
+//                .avg("Noise");
+//
+//
+//        // testing OK
+//        final Dataset<Row> weeklyAverages = poiNoise
+//                .groupBy(window(col("Timestamp"), "1 week", "1 day"),
+//                        col("POIName"))
+//                .avg("Noise");
 //
         // testing OK
-        final Dataset<Row> dailyAverages = poiNoise
-                .groupBy(window(col("Timestamp"), "1 day", "1 hour"),
-                        col("POIName"))
-                .avg("Noise");
+//        final Dataset<Row> overThreshold = poiNoise
+//                .withWatermark("timestamp", "5 minutes")
+//                .filter(col("Noise").geq(threshold))
+//                .groupBy("POIName")
+//                .max("TSLong")
+//                .orderBy(asc("max(TSLong)"))
+//                .limit(1);
 
+//        final StreamingQuery fiveMinuteQuery = fiveMinuteAvg
+//                .writeStream()
+//                .format("kafka")
+//                .outputMode("append")
+//                .option("checkpointLocation", "/mnt/c/tmp/new")
+//                .option("kafka.bootstrap.servers", "localhost:9092")
+//                .option("topic", "nodered-try-ter")
+////                .trigger(Trigger.ProcessingTime("1 minutes")) //periodic query: query computation every /*processing time*/
+//                .start();
 
-        // testing OK
-        final Dataset<Row> weeklyAverages = poiNoise
-                .groupBy(window(col("Timestamp"), "1 week", "1 day"),
-                        col("POIName"))
-                .avg("Noise");
-
-        // testing OK
-        final Dataset<Row> lastTimeOverThreshold = poiNoise
+        //query to find all measurements within watermark that went over the threshold
+        final StreamingQuery thresholdQuery = poiNoise
+                .withWatermark("Timestamp", "5 minutes")
                 .filter(col("Noise").geq(threshold))
-                .groupBy("POIName")
-                .max("TSLong")
-                .orderBy(asc("max(TSLong)"))
-                .limit(1);
-
-        final StreamingQuery query = lastTimeOverThreshold
+                .select(col("POIName"), col("TSLong"), col("Noise"))
+                .map((MapFunction<Row, Tuple2<String, String>>) x -> {
+                    Gson gson = new Gson();
+                    JsonObject outputObj = new JsonObject();
+                    outputObj.addProperty("timestamp", x.get(1).toString());
+                    outputObj.addProperty("noise", x.get(2).toString());
+                    return new Tuple2<>(x.get(0).toString(), gson.toJson(outputObj));
+                }, Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+                .toDF("key", "value")
                 .writeStream()
-                .format("console")
-                .outputMode("complete")
+                .format("kafka")
+                .outputMode("update")
+                .option("checkpointLocation", "/mnt/c/tmp/new")
+                .option("kafka.bootstrap.servers", "localhost:9092")
+                .option("topic", "threshold-try")
+//                .trigger(Trigger.ProcessingTime("5 minutes")) //periodic query: query computation every /*processing time*/
                 .start();
 
         try {
-            query.awaitTermination();
+            thresholdQuery.awaitTermination();
         } catch (final StreamingQueryException e) {
             e.printStackTrace();
         }
