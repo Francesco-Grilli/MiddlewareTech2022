@@ -3,6 +3,7 @@
 #include <vector>
 #include <mpi.h>
 #include <math.h>
+#include "SimulationParameters.h"
 
 
 class Simulator
@@ -10,12 +11,11 @@ class Simulator
 
 private:
 
-	int rank;
-	int numberPeople;
-	int numberCars;
-	const int width;
-	const int length;
-	int sizeProcess;
+	//All variable needed for the simulation
+	simulationParameters parameters;
+	
+	bool definedOperation;
+
 
 	MPI_Op SUM_DECIBEL;
 	
@@ -34,15 +34,19 @@ private:
 	float** noises;
 
 	void initializeVariables();
+	void initializePeopleCars();
+	
 
 
 public:
 
-	Simulator(int rank, int numberPeople, int numberCars, const int width, const int length, int sizeProcess);
+	Simulator(simulationParameters parameters);
 	~Simulator();
 
 	void calculateNoise();
 	void gatherNoises();
+
+	void recomputePosition();
 
 	static void sumOfNoises(void* inputBuffer, void* outputBuffer, int* len, MPI_Datatype* datatype);
 

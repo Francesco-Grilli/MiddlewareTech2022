@@ -23,6 +23,7 @@
     <ClCompile Include="Simulator.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="SimulationParameters.h" />
     <ClInclude Include="Simulator.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
