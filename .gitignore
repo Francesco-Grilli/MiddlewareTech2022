@@ -11,3 +11,4 @@ buildNumber.properties
 .mvn/wrapper/maven-wrapper.jar
 .idea
 *.iml
+/MPI_Simulation/.vs/MPI_Simulation/v17
