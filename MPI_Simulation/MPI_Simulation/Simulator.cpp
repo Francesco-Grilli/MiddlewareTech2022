@@ -20,6 +20,7 @@ void Simulator::initializeVariables()
 	if (MPI_Op_create(&sumOfNoises, 0, &SUM_DECIBEL) == MPI_SUCCESS) {
 		this->definedOperation = true;
 	}
+
 }
 
 void Simulator::initializePeopleCars()
@@ -44,16 +45,53 @@ void Simulator::initializePeopleCars()
 
 }
 
+void Simulator::mosquittoInit()
+{
+	if (this->parameters.rank == 0) {
+		mosquitto* mosq;
+
+		mosquitto_lib_init();
+
+		mosq = mosquitto_new("publisher-c++", true, nullptr);
+
+		if (mosquitto_connect(mosq, "test.mosquitto.org", 1883, 60) != MOSQ_ERR_SUCCESS) {
+			throw std::runtime_error("Impossible to connect to the broker");
+			mosquitto_destroy(mosq);
+		}
+
+		std::cout << "Sending a message\n";
+		mosquitto_publish(mosq, nullptr, "MyTopic", 4, "Ciao", 1, true);
+
+		mosquitto_disconnect(mosq);
+
+		mosquitto_destroy(mosq);
+
+		mosquitto_lib_cleanup();
+	}
+
+	
+
+
+	
+
+}
+
+inline float Simulator::sumOfNoises(float n1, float n2)
+{
+	return 10 * std::log10(std::pow(10, n1 / 10) + std::pow(10, n2 / 10));
+}
+
 Simulator::Simulator(simulationParameters parameters) : 
 	parameters(parameters)
 {
 	initializeVariables();
 	initializePeopleCars();
+	mosquittoInit();
 }
 
 Simulator::~Simulator()
 {
-	for (int i = 0; i < this->parameters.length; i++)
+	for (int i = 0; i < this->parameters.width; i++)
 		delete this->noises[i];
 	delete this->noises;
 }
@@ -64,9 +102,45 @@ void Simulator::calculateNoise()
 	//std::cout << "CALCULATENOISE\n";
 	for (int i = 0; i < this->parameters.width; i++) {
 		for (int j = 0; j < this->parameters.length; j++) {
-			this->noises[i][j] = rand()%100;
+			this->noises[i][j] = rand()%10 + 30;
 		}
 	}
+
+	for (auto& p : this->people) {
+		int normX = std::floor(p.posX);
+		int normY = std::floor(p.posY);
+		std::cout << "People x y:  " << normX << " " << normY<<"\n";
+
+		int x1 = std::max(normX - this->parameters.distanceAffectPeople, 0);
+		int x2 = std::min(normX + this->parameters.distanceAffectPeople, (this->parameters.width-1));
+		int y1 = std::max(normY - this->parameters.distanceAffectPeople, 0);
+		int y2 = std::min(normY + this->parameters.distanceAffectPeople, (this->parameters.length-1));
+
+		for (int i = x1; i <= x2; i++) {
+			for (int j = y1; j <= y2; j++) {
+				this->noises[i][j] = sumOfNoises(this->noises[i][j], this->parameters.noisePerPerson);
+			}
+		}
+	}
+
+	for (auto& p : this->cars) {
+		int normX = std::floor(p.posX);
+		int normY = std::floor(p.posY);
+		std::cout << "Car x y:  " << normX << " " << normY << "\n";
+
+		int x1 = std::max(normX - this->parameters.distanceAffectCar, 0);
+		int x2 = std::min(normX + this->parameters.distanceAffectCar, (this->parameters.width - 1));
+		int y1 = std::max(normY - this->parameters.distanceAffectCar, 0);
+		int y2 = std::min(normY + this->parameters.distanceAffectCar, (this->parameters.length - 1));
+
+		for (int i = x1; i <= x2; i++) {
+			for (int j = y1; j <= y2; j++) {
+				this->noises[i][j] = sumOfNoises(this->noises[i][j], this->parameters.noisePerCar);
+			}
+		}
+	}
+
+	//std::cout << this->noises[0][0] << "\n";
 	//std::cout << "END OF CALCULATENOISE\n";
 
 }
@@ -79,12 +153,13 @@ void Simulator::gatherNoises()
 	float* data = new float[this->parameters.width * this->parameters.length];
 
 	int count = 0;
-	for (int i = 0; i < this->parameters.width; i++) {
-		for (int j = 0; j < this->parameters.length; j++) {
-			data[count] = this->noises[i][j];
+	for (int i = 0; i < this->parameters.length; i++) {
+		for (int j = 0; j < this->parameters.width; j++) {
+			data[count] = this->noises[j][i];
 			count++;
 		}
 	}
+	//std::cout << this->noises[0][0] << "\n";
 
 	/*for (int i = 0; i < this->width * this->length; i++) {
 		std::cout << data[i] << "	\n";
@@ -118,7 +193,7 @@ void Simulator::gatherNoises()
 		std::cout << e.what() << "\n";
 	}
 
-	//std::cout << "END GATHER FUNCTION + START PRINT\n";
+	std::cout << "END GATHER FUNCTION + START PRINT\n";
 
 
 	if (this->parameters.rank == 0) {
@@ -126,14 +201,21 @@ void Simulator::gatherNoises()
 
 		//std::cout << "PRINT DATACOUNT " << dataCount << "\n";
 		
+		int c = 0;
 		for (int i = 0; i < this->parameters.length; i++) {
 			for (int j = 0; j < this->parameters.width; j++) {
-				std::cout << (int)((float*)recvData)[i * this->parameters.width + j] << "\t";
+				std::cout << (int)((float*)recvData)[c] << "  ";
+				c++;
 			}
 			std::cout << "\n";
-			
 		}
+
+		/*for (int i = 0; i < this->parameters.length * this->parameters.width; i++) {
+			std::cout << (int)((float*)recvData)[i] << "  ";
+		}*/
 	}
+
+	std::cout << "End printing" << "\n";
 
 }
 

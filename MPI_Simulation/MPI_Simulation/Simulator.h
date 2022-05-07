@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include <math.h>
 #include "SimulationParameters.h"
+#include "mosquitto.h"
 
 
 class Simulator
@@ -35,6 +36,8 @@ private:
 
 	void initializeVariables();
 	void initializePeopleCars();
+	void mosquittoInit();
+	inline float sumOfNoises(float n1, float n2);
 	
 
 

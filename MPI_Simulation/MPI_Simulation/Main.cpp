@@ -46,8 +46,11 @@ int main(int argc, char* argv[]) {
 	Simulator s(parameters);
 
 	s.calculateNoise();
-	s.recomputePosition();
+	//s.recomputePosition();
 	s.gatherNoises();
+	/*s.calculateNoise();
+	s.recomputePosition();
+	s.gatherNoises();*/
 
 	//some printing debug
 	/*printf("I am process %d out of %d\n", rank, size);
