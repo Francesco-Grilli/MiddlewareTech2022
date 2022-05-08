@@ -21,6 +21,8 @@ void Simulator::initializeVariables()
 		this->definedOperation = true;
 	}
 
+	int dataCount = this->parameters.width * this->parameters.length;
+	this->recvData = new float[dataCount];
 }
 
 void Simulator::initializePeopleCars()
@@ -81,12 +83,51 @@ inline float Simulator::sumOfNoises(float n1, float n2)
 	return 10 * std::log10(std::pow(10, n1 / 10) + std::pow(10, n2 / 10));
 }
 
+inline float Simulator::calculateDistance(int x1, int x2, int y1, int y2)
+{
+	return std::sqrt(std::pow((x2 - x1), 2) + std::pow((y2 - y1), 2));
+}
+
+void Simulator::averagingData()
+{
+
+	int d = this->parameters.width / this->parameters.granularity;
+	int l = this->parameters.length / this->parameters.granularity;
+
+	for (int i = 0; i < d; i++) {
+		for (int j = 0; j < l; j++) {
+			int sum = 0;
+			for (int k = i * this->parameters.granularity; k < i * this->parameters.granularity + 4; k++) {
+				for (int s = j * this->parameters.granularity; s < j * this->parameters.granularity + 4; s++) {
+					sum += this->noises[k][s];
+				}
+			}
+
+			sum = sum / (this->parameters.granularity * this->parameters.granularity);
+
+			for (int k = i * this->parameters.granularity; k < i * this->parameters.granularity + 4; k++) {
+				for (int s = j * this->parameters.granularity; s < j * this->parameters.granularity + 4; s++) {
+					this->noises[k][s] = sum;
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < this->parameters.length; i++) {
+		for (int j = 0; j < this->parameters.width; j++) {
+			std::cout << this->noises[j][i] << " ";
+		}
+		std::cout << "\n";
+	}
+	std::cout << "END OF COMPUTATION\n";
+}
+
 Simulator::Simulator(simulationParameters parameters) : 
 	parameters(parameters)
 {
 	initializeVariables();
 	initializePeopleCars();
-	mosquittoInit();
+	//mosquittoInit();
 }
 
 Simulator::~Simulator()
@@ -94,6 +135,7 @@ Simulator::~Simulator()
 	for (int i = 0; i < this->parameters.width; i++)
 		delete this->noises[i];
 	delete this->noises;
+	delete this->recvData;
 }
 
 void Simulator::calculateNoise()
@@ -102,7 +144,7 @@ void Simulator::calculateNoise()
 	//std::cout << "CALCULATENOISE\n";
 	for (int i = 0; i < this->parameters.width; i++) {
 		for (int j = 0; j < this->parameters.length; j++) {
-			this->noises[i][j] = rand()%10 + 30;
+			this->noises[i][j] = rand() % 10 + 30;
 		}
 	}
 
@@ -118,6 +160,15 @@ void Simulator::calculateNoise()
 
 		for (int i = x1; i <= x2; i++) {
 			for (int j = y1; j <= y2; j++) {
+				float noiseToAdd;
+				float distance = calculateDistance(i, normX, j, normY);
+				if (distance == 0) {
+					noiseToAdd = this->parameters.noisePerPerson;
+				}
+				else {
+					noiseToAdd = std::max(-8.6 * std::log(distance) + this->parameters.noisePerPerson -6, 0.0);
+				}
+			
 				this->noises[i][j] = sumOfNoises(this->noises[i][j], this->parameters.noisePerPerson);
 			}
 		}
@@ -135,6 +186,15 @@ void Simulator::calculateNoise()
 
 		for (int i = x1; i <= x2; i++) {
 			for (int j = y1; j <= y2; j++) {
+				float noiseToAdd;
+				float distance = calculateDistance(i, normX, j, normY);
+				if (distance == 0) {
+					noiseToAdd = this->parameters.noisePerCar;
+				}
+				else {
+					noiseToAdd = std::max(-8.6 * std::log(distance) + this->parameters.noisePerCar - 6, 0.0);
+				}
+
 				this->noises[i][j] = sumOfNoises(this->noises[i][j], this->parameters.noisePerCar);
 			}
 		}
@@ -147,76 +207,51 @@ void Simulator::calculateNoise()
 
 void Simulator::gatherNoises()
 {
-
-	//std::cout << "BEFORE GATHERNOISES\n";
 	//Transform the matrix (2D array) into a single long array
 	float* data = new float[this->parameters.width * this->parameters.length];
 
 	int count = 0;
-	for (int i = 0; i < this->parameters.length; i++) {
-		for (int j = 0; j < this->parameters.width; j++) {
-			data[count] = this->noises[j][i];
+	for (int i = 0; i < this->parameters.width; i++) {
+		for (int j = 0; j < this->parameters.length; j++) {
+			data[count] = this->noises[i][j];
 			count++;
 		}
 	}
-	//std::cout << this->noises[0][0] << "\n";
-
-	/*for (int i = 0; i < this->width * this->length; i++) {
-		std::cout << data[i] << "	\n";
-	}*/
-
-	/*MPI_Barrier(MPI_COMM_WORLD);*/
-
-	//std::cout << "CREATED LONG ARRAY\n";
 
 	float* sendData = data;
 	int dataCount = this->parameters.width * this->parameters.length;
-	//MPI send dataType = MPI_FLOAT
-	float* recvData = new float[dataCount];
-	int recvCount = this->parameters.width * this->parameters.length;
 	//MPI receive dataType = MPI_FLOAT
 	int root = 0;
 	//MPI Communicator = MPI_COMM_WORLD
 
 
-	//std::cout << "INVOKING GATHER FUNCTION\n";
-
 	//Gathering all matrices from all processes
 	try {
 		if(this->definedOperation)
-			MPI_Reduce(sendData, recvData, dataCount, MPI::FLOAT, SUM_DECIBEL, root, MPI_COMM_WORLD);
+			MPI_Reduce(sendData, this->recvData, dataCount, MPI::FLOAT, SUM_DECIBEL, root, MPI_COMM_WORLD);
 		else
-			MPI_Reduce(sendData, recvData, dataCount, MPI::FLOAT, MPI::SUM, root, MPI_COMM_WORLD);
+			MPI_Reduce(sendData, this->recvData, dataCount, MPI::FLOAT, MPI::SUM, root, MPI_COMM_WORLD);
 	}
 	catch (std::exception e) {
 		std::cout << "RANK: " << this->parameters.rank << "\n";
 		std::cout << e.what() << "\n";
 	}
 
-	std::cout << "END GATHER FUNCTION + START PRINT\n";
-
 
 	if (this->parameters.rank == 0) {
 		//We are in the root node, we have to calculate the sum of all matrices
-
-		//std::cout << "PRINT DATACOUNT " << dataCount << "\n";
 		
 		int c = 0;
-		for (int i = 0; i < this->parameters.length; i++) {
-			for (int j = 0; j < this->parameters.width; j++) {
-				std::cout << (int)((float*)recvData)[c] << "  ";
+		for (int i = 0; i < this->parameters.width; i++) {
+			for (int j = 0; j < this->parameters.length; j++) {
+				this->noises[i][j] = (int)((float*)recvData)[c];
 				c++;
 			}
-			std::cout << "\n";
 		}
 
-		/*for (int i = 0; i < this->parameters.length * this->parameters.width; i++) {
-			std::cout << (int)((float*)recvData)[i] << "  ";
-		}*/
+		this->averagingData();
+
 	}
-
-	std::cout << "End printing" << "\n";
-
 }
 
 void Simulator::recomputePosition()

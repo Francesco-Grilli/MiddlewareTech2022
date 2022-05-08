@@ -14,4 +14,5 @@ struct simulationParameters {
 	int timeStep;
 	int rank;
 	int size;
+	int granularity;
 };

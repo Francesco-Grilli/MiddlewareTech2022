@@ -34,10 +34,17 @@ private:
 	//2d matrix for the noises
 	float** noises;
 
+	float* recvData;
+	float* averageData;
+
 	void initializeVariables();
 	void initializePeopleCars();
 	void mosquittoInit();
+
 	inline float sumOfNoises(float n1, float n2);
+	inline float calculateDistance(int x1, int x2, int y1, int y2);
+
+	void averagingData();
 	
 
 
