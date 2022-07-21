@@ -4,8 +4,6 @@ import akka.actor.ActorRef;
 import akka.persistence.AbstractPersistentActorWithAtLeastOnceDelivery;
 import akka.persistence.SaveSnapshotSuccess;
 import akka.persistence.SnapshotOffer;
-
-import java.util.ArrayList;
 import java.util.LinkedList;
 
 
@@ -30,7 +28,7 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
     public Receive createReceiveRecover() {
         return receiveBuilder()
                 .match(DataMessage.class, myState::update)
-                .match(SnapshotOffer.class, ss -> this.myState = (State) ss.snapshot()/*TODO add method to restore the state/window */)
+                .match(SnapshotOffer.class, this::restoreState)
                 .build();
     }
 
@@ -39,6 +37,7 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
         return receiveBuilder()
                 .match(DataMessage.class, this::calculateWindow)
                 .match(SaveSnapshotSuccess.class, System.out::println)
+                .match(ErrorMessage.class, (m) -> {throw new Exception("Error message arrived");})
                 .build();
     }
 
@@ -67,6 +66,12 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
 
         this.myWindow.addFirst(message);
 
+        System.out.println("|||||||||||||||||||||");
+        for(DataMessage m : this.myWindow){
+            System.out.println(m.getData().second());
+        }
+        System.out.println("|||||||||||||||||||||");
+
         DataMessage reply;
 
         if(isPipeFull()){
@@ -93,6 +98,54 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
 
     }
 
+    void restoreState(SnapshotOffer ss){
+
+        this.myState = (State) ss.snapshot();
+
+        LinkedList<DataMessage> temporaryList = ((State)ss.snapshot()).getDataCopy();
+
+        System.out.println("In recovery method");
+        for(DataMessage m : temporaryList){
+            System.out.println(m.getData().second());
+        }
+
+        LinkedList<DataMessage> emptyList = new LinkedList<>();
+
+        int i;
+        for(i=0; i < temporaryList.size() && i<this.windowSize; i++){
+            emptyList.addLast(temporaryList.get(i));
+        }
+
+        if(((temporaryList.size()-i)%this.windowSlide)!=0 && i>0){
+
+            for(int k=0; k<((temporaryList.size()-i)%this.windowSlide) && (i-k)>=0; k++){
+                emptyList.addLast(temporaryList.get(i-k));
+            }
+
+        }
+
+        this.myWindow = emptyList;
+
+        System.out.println("Printing recovered state");
+        for(int k=0; k<this.myWindow.size(); k++){
+            System.out.println(this.myWindow.get(k).getData().second());
+        }
+
+        DataMessage reply;
+        if(isPipeFull()){
+            reply = calculateOperator();
+            reply.setSendToNext(true);
+            deleteSlidingElement();
+            getContext().getParent().tell(reply, getSelf());
+            System.out.println(getSelf().path().name() + ": " + reply.getData().second());
+        }
+
+        System.out.println("Printing recovered state after sending message");
+        for(int k=0; k<this.myWindow.size(); k++){
+            System.out.println(this.myWindow.get(k).getData().second());
+        }
+
+    }
 
 
 }

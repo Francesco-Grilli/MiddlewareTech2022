@@ -36,6 +36,7 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
     public Receive createReceive() {
         return receiveBuilder()
                 .match(DataMessage.class, this::reRoute)
+                .match(ErrorMessage.class, this::reRouteErrorMessage)
                 .build();
     }
 
@@ -55,8 +56,9 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
         }
     }
 
-    public static Props props(String nextStageString, int numberStage, int windowSize, int windowSlide){
-        return Props.create(SupervisorActor.class, () -> new SupervisorActor(nextStageString, numberStage, windowSize, windowSlide));
+    void reRouteErrorMessage(ErrorMessage m){
+        ActorRef child = this.children.get(0);
+        child.tell(m, getSelf());
     }
 
     @Override
@@ -91,6 +93,10 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
         return strategy;
     }
 
-    private static SupervisorStrategy strategy = new AllForOneStrategy(10, Duration.ofMinutes(1),
+    public static Props props(String nextStageString, int numberStage, int windowSize, int windowSlide){
+        return Props.create(SupervisorActor.class, () -> new SupervisorActor(nextStageString, numberStage, windowSize, windowSlide));
+    }
+
+    private static SupervisorStrategy strategy = new OneForOneStrategy(10, Duration.ofMinutes(1),
             DeciderBuilder.match(Exception.class, e -> SupervisorStrategy.restart()).build());
 }
