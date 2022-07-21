@@ -356,7 +356,7 @@ void Simulator::gatherNoises()
 void Simulator::recomputePosition()
 {
 
-	/*TODO: have to multiply the speed for the timestep!*/
+	
 
 	for (auto& p : this->people) {
 		
