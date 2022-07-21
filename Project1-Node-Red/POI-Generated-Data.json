@@ -1,18 +1,18 @@
 [
     {
-        "id": "5e7853464fdac029",
+        "id": "76e8f673b15b6012",
         "type": "tab",
-        "label": "Flow 2",
+        "label": "POI-Generate-Data (mw project)",
         "disabled": false,
         "info": "",
         "env": []
     },
     {
-        "id": "e81114c06b79f5a9",
+        "id": "5ec53cf1fed67dc9",
         "type": "function",
-        "z": "5e7853464fdac029",
+        "z": "76e8f673b15b6012",
         "name": "",
-        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    POI = getNearestPOI(msg.info.x, msg.info.y)\n    \n    noises = getNoises(msg.info.noise, 100);\n    \n    \n    json = {noise : noises, \n            timestamp : msg.info.timestamp, \n            POIRegion : POI.Region,\n            POIName : POI.Name};\n            \n    \n    message = {payload : JSON.stringify(json)}\n    message.payload = message.payload + \"\\n\";\n    \n    return message;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\nfunction getNoises(noises, k){\n    \n    n = [];\n    sum =0;\n    count = noises.length;\n    \n    noises.forEach(e => sum+=e);\n    if((sum/count)>k){\n        return noises;\n    }\n    else{\n        n.push(sum/count);\n        return n;\n    }\n    \n}\n\n",
+        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    POI = getNearestPOI(msg.info.x, msg.info.y);\n\n    noises = getNoises(msg.info.noise, 100);\n\n    //send multiple noise messages in case an array\n    //of noises is received\n    for (let i = 0; i<noises.length; i++){\n        let message = {};\n        message.key = POI.Name;\n        message.timestamp = msg.info.timestamp.toString();\n        //asynchronous send otherwise kafka producer\n        //receives only the first one\n        message.payload = noises[i].toString() + \",\" + message.timestamp;\n        node.send(message);\n    }\n    \n    return null;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\nfunction getNoises(noises, k){\n    \n    n = [];\n    sum =0;\n    count = noises.length;\n    \n    noises.forEach(e => sum+=e);\n    if((sum/count)>k){\n        return noises;\n    }\n    else{\n        n.push(sum/count);\n        return n;\n    }\n    \n}\n\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -22,15 +22,14 @@
         "y": 280,
         "wires": [
             [
-                "1a92162f1f6a1ef9",
-                "bc460d9782c497e9"
+                "015227b9ae85543a"
             ]
         ]
     },
     {
-        "id": "30cd086a896a22e8",
+        "id": "f9fff4d22425991b",
         "type": "csv",
-        "z": "5e7853464fdac029",
+        "z": "76e8f673b15b6012",
         "name": "",
         "sep": ",",
         "hdrin": true,
@@ -46,14 +45,14 @@
         "y": 360,
         "wires": [
             [
-                "e81114c06b79f5a9"
+                "5ec53cf1fed67dc9"
             ]
         ]
     },
     {
-        "id": "9ec25bf10237fa2f",
+        "id": "92882f260e317ebc",
         "type": "inject",
-        "z": "5e7853464fdac029",
+        "z": "76e8f673b15b6012",
         "name": "",
         "props": [
             {
@@ -75,16 +74,16 @@
         "y": 340,
         "wires": [
             [
-                "fc9c82bf362a1e2b"
+                "2939c1bb82678d78"
             ]
         ]
     },
     {
-        "id": "fc9c82bf362a1e2b",
+        "id": "2939c1bb82678d78",
         "type": "file in",
-        "z": "5e7853464fdac029",
+        "z": "76e8f673b15b6012",
         "name": "POI-File",
-        "filename": "C:\\Users\\franc\\Documents\\MiddlewareTech\\MiddlewareTech2022\\Project1-Node-Red\\POI.txt",
+        "filename": "C:\\Users\\PC\\IdeaProjects\\MiddlewareTech2022\\Project1-Node-Red\\POI.txt",
         "format": "utf8",
         "chunk": false,
         "sendError": false,
@@ -94,14 +93,14 @@
         "y": 420,
         "wires": [
             [
-                "30cd086a896a22e8"
+                "f9fff4d22425991b"
             ]
         ]
     },
     {
-        "id": "069e4471bdf5891d",
+        "id": "08d7d0c395716fc1",
         "type": "function",
-        "z": "5e7853464fdac029",
+        "z": "76e8f673b15b6012",
         "name": "",
         "func": "\nnoises = [];\n\nfor(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n}\n\nm = {\n    topic : \"POI\",\n    info : {\n        x:  Math.random()*10000 - 5000,\n        y:  Math.random()*10000 - 5000,\n        noise:  noises,\n        timestamp:  Date.now()\n    }\n};\nreturn m;",
         "outputs": 1,
@@ -113,14 +112,14 @@
         "y": 180,
         "wires": [
             [
-                "e81114c06b79f5a9"
+                "5ec53cf1fed67dc9"
             ]
         ]
     },
     {
-        "id": "c95e41320c0f5f73",
+        "id": "6c2ffe323c817da6",
         "type": "inject",
-        "z": "5e7853464fdac029",
+        "z": "76e8f673b15b6012",
         "name": "",
         "props": [
             {
@@ -134,22 +133,21 @@
         "repeat": "",
         "crontab": "",
         "once": false,
-        "onceDelay": 0.1,
+        "onceDelay": "1",
         "topic": "",
-        "payload": "",
         "payloadType": "date",
         "x": 140,
-        "y": 160,
+        "y": 180,
         "wires": [
             [
-                "069e4471bdf5891d"
+                "08d7d0c395716fc1"
             ]
         ]
     },
     {
-        "id": "67c5a6222a9baf49",
+        "id": "cafd347715dfc45e",
         "type": "debug",
-        "z": "5e7853464fdac029",
+        "z": "76e8f673b15b6012",
         "name": "",
         "active": true,
         "tosidebar": true,
@@ -159,67 +157,220 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1050,
+        "x": 870,
         "y": 640,
         "wires": []
     },
     {
-        "id": "1a92162f1f6a1ef9",
-        "type": "debug",
-        "z": "5e7853464fdac029",
-        "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 810,
-        "y": 300,
-        "wires": []
+        "id": "f79965bf600d4ad0",
+        "type": "function",
+        "z": "76e8f673b15b6012",
+        "name": "Select message attributes",
+        "func": "kafkaObject = msg.payload;\nsplitPayload = kafkaObject.value.split(\",\");\ntimestamp = new Date(Number(splitPayload[1]));\n\ncleanMsg = {\n    topic : msg.topic,\n    key : kafkaObject.key,\n    timestamp : timestamp.toLocaleString(),\n    value : splitPayload[0],\n}\n\nreturn cleanMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 520,
+        "wires": [
+            [
+                "e6e31b1db4fad0a1"
+            ]
+        ]
     },
     {
-        "id": "ecd0c58b1e96bdc4",
-        "type": "inject",
-        "z": "5e7853464fdac029",
-        "name": "",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 580,
-        "y": 100,
+        "id": "e6e31b1db4fad0a1",
+        "type": "function",
+        "z": "76e8f673b15b6012",
+        "name": "Convert for csv",
+        "func": "let pld = msg.key + \",\";\npld = pld + msg.timestamp + \",\";\npld = pld + msg.value;\n\n// if (payload.avgNoise){\n//     payload.noise = payload.avgNoise;\n// }\n// newPayload = payload.POIName;\n// ts = new Date(payload.timestamp);\n// newPayload = newPayload + \",\" + ts.toUTCString();\n// for (let i = 0; i < payload.noise.length; i++){\n//     newPayload = newPayload + \",\" + payload.noise[i];\n// }\n\nnewMsg = {\n    payload : pld\n}\n\nreturn newMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 580,
+        "wires": [
+            [
+                "6c49c55d8458faae"
+            ]
+        ]
+    },
+    {
+        "id": "6c49c55d8458faae",
+        "type": "file",
+        "z": "76e8f673b15b6012",
+        "name": "Write input to csv",
+        "filename": "C:\\tmp\\input.csv",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 910,
+        "y": 580,
         "wires": [
             []
         ]
     },
     {
-        "id": "bc460d9782c497e9",
-        "type": "tcp out",
-        "z": "5e7853464fdac029",
+        "id": "d7aa0bae1ce34d0b",
+        "type": "function",
+        "z": "76e8f673b15b6012",
         "name": "",
-        "host": "tcp://localhost",
-        "port": "9999",
-        "beserver": "server",
-        "base64": false,
-        "end": false,
-        "tls": "",
-        "x": 840,
-        "y": 120,
+        "func": "payload = JSON.parse(msg.payload);\nnewPayload = msg._kafka.key;\nts = new Date(payload.timestamp);\nnewPayload = newPayload + \",\" + ts.toUTCString();\nnewPayload = newPayload + \",\" + payload.avgNoise;\n\n\nnewMsg = {\n    payload : newPayload\n}\n\nreturn newMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 740,
+        "wires": [
+            [
+                "c6a7ae7275828aa7"
+            ]
+        ]
+    },
+    {
+        "id": "c6a7ae7275828aa7",
+        "type": "file",
+        "z": "76e8f673b15b6012",
+        "name": "Write input to csv",
+        "filename": "C:\\tmp\\2minslide1.csv",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 890,
+        "y": 740,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "dc4be35bfc8c3f00",
+        "type": "kafkajs-consumer",
+        "z": "76e8f673b15b6012",
+        "name": "KafkaJS Input Consumer",
+        "client": "9e09ad31afc63b92",
+        "groupid": "",
+        "topic": "nodered-input",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": 30000,
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": false,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 370,
+        "y": 520,
+        "wires": [
+            [
+                "f79965bf600d4ad0"
+            ]
+        ]
+    },
+    {
+        "id": "bb443e1771990176",
+        "type": "kafkajs-consumer",
+        "z": "76e8f673b15b6012",
+        "name": "KafkaJS Input Consumer",
+        "client": "9e09ad31afc63b92",
+        "groupid": "",
+        "topic": "test-fiveMin",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": "30002",
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": false,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 370,
+        "y": 640,
+        "wires": [
+            [
+                "58a973f7681497c6"
+            ]
+        ]
+    },
+    {
+        "id": "58a973f7681497c6",
+        "type": "function",
+        "z": "76e8f673b15b6012",
+        "name": "Select message attributes",
+        "func": "kafkaObject = msg.payload;\nsplitPayload = kafkaObject.value.split(\",\");\ntimestamp = new Date(Number(splitPayload[1]));\n\ncleanMsg = {\n    topic : msg.topic,\n    poi : kafkaObject.key,\n    timestamp : timestamp.toLocaleString(),\n    value : splitPayload[0],\n}\n\nreturn cleanMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 640,
+        "wires": [
+            [
+                "cafd347715dfc45e"
+            ]
+        ]
+    },
+    {
+        "id": "015227b9ae85543a",
+        "type": "kafkajs-producer",
+        "z": "76e8f673b15b6012",
+        "name": "KafkaJS Input Producer",
+        "client": "9e09ad31afc63b92",
+        "topic": "nodered-input",
+        "advancedoptions": true,
+        "acknowledge": "all",
+        "partition": "",
+        "headeritems": {},
+        "key": "",
+        "responsetimeout": 30000,
+        "transactiontimeout": 60000,
+        "metadatamaxage": 300000,
+        "allowautotopiccreation": true,
+        "x": 860,
+        "y": 280,
         "wires": []
+    },
+    {
+        "id": "9e09ad31afc63b92",
+        "type": "kafkajs-client",
+        "name": "Test Client",
+        "brokers": "127.0.0.1:9092",
+        "clientid": "384",
+        "connectiontimeout": "3000",
+        "requesttimeout": "25000",
+        "advancedretry": false,
+        "maxretrytime": "30000",
+        "initialretrytime": "300",
+        "factor": "0.2",
+        "multiplier": "2",
+        "retries": "5",
+        "auth": "none",
+        "tlsselfsign": false,
+        "tlscacert": "",
+        "tlsclientcert": "",
+        "tlsprivatekey": "",
+        "tlspassphrase": "",
+        "saslssl": true,
+        "saslmechanism": "plain",
+        "loglevel": "error"
     }
 ]

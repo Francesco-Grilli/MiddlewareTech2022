@@ -2,7 +2,6 @@ package it.polimi.mwtech2022.project1.utils;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import lombok.Getter;
 
 import java.io.BufferedReader;
