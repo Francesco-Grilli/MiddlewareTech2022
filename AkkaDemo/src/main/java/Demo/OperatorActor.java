@@ -38,6 +38,7 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
                 .match(DataMessage.class, this::calculateWindow)
                 .match(SaveSnapshotSuccess.class, System.out::println)
                 .match(ErrorMessage.class, (m) -> {throw new Exception("Error message arrived");})
+                .match(ConfirmMessage.class, this::confirmMessage)
                 .build();
     }
 
@@ -64,6 +65,8 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
 
         persistMessage(message);
 
+        getSender().tell(new ConfirmMessage(message.getId()), getSelf());
+
         this.myWindow.addFirst(message);
 
         System.out.println("|||||||||||||||||||||");
@@ -78,7 +81,8 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
             reply = calculateOperator();
             reply.setSendToNext(true);
             deleteSlidingElement();
-            getContext().getParent().tell(reply, getSelf());
+            deliver(getContext().getParent().path(), longId -> new DataMessage(reply, true, longId));
+            //getContext().getParent().tell(reply, getSelf());
             System.out.println(getSelf().path().name() + ": " + reply.getData().second());
         }
 
@@ -144,6 +148,16 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
         for(int k=0; k<this.myWindow.size(); k++){
             System.out.println(this.myWindow.get(k).getData().second());
         }
+
+    }
+
+    void confirmMessage(ConfirmMessage m){
+
+        persist(new MsgConfirm(m.getId()),
+                (e) -> {
+                    confirmDelivery(e.getId());
+                }
+        );
 
     }
 

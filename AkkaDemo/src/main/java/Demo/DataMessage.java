@@ -13,6 +13,12 @@ public class DataMessage implements Serializable {
     private boolean sendToNext = false;
     private long id;
 
+    public DataMessage(DataMessage m, boolean sendToNext, long id){
+        this.data = m.getData();
+        this.sendToNext = sendToNext;
+        this.id = id;
+    }
+
     public DataMessage(DataMessage m){
         this.data = m.getData();
     }
@@ -22,8 +28,9 @@ public class DataMessage implements Serializable {
     }
 
     public DataMessage(String s, Double d){
-        data = new Pair<>(s, d);
+        this.data = new Pair<>(s, d);
     }
+
 
     public Pair<String, Double> getData() {
         return data;
@@ -41,7 +48,4 @@ public class DataMessage implements Serializable {
         return id;
     }
 
-    public void setId(long id) {
-        this.id = id;
-    }
 }

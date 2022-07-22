@@ -3,14 +3,18 @@ package Demo;
 import akka.actor.*;
 import akka.japi.pf.DeciderBuilder;
 import akka.persistence.AbstractPersistentActorWithAtLeastOnceDelivery;
+import akka.util.Timeout;
+import scala.concurrent.Future;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDelivery {
 
     ArrayList<ActorRef> children;
-    ActorSelection nextStage;
+    ActorRef nextStage;
     String nextStageString;
     int numberStage;
     long currentId;
@@ -37,6 +41,7 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
         return receiveBuilder()
                 .match(DataMessage.class, this::reRoute)
                 .match(ErrorMessage.class, this::reRouteErrorMessage)
+                .match(ConfirmMessage.class, this::confirmMessage)
                 .build();
     }
 
@@ -46,13 +51,18 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
     }
 
     void reRoute(DataMessage message){
+
+        getSender().tell(new ConfirmMessage(message.getId()), getSelf());
+
         if(message.isSendToNext()){
             message.setSendToNext(false);
-            this.nextStage.tell(message, getSelf());
+            deliver(this.nextStage.path(), longId -> new DataMessage(message, false, longId));
+            //this.nextStage.tell(message, getSelf());
         }
         else{
             ActorRef child = this.children.get(0);
-            child.tell(message, getSelf());
+            deliver(child.path(), longId -> new DataMessage(message, false, longId));
+            //child.tell(message, getSelf());
         }
     }
 
@@ -62,11 +72,23 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
     }
 
     @Override
-    public void preStart() throws Exception, Exception {
+    public void preStart() throws Exception {
         super.preStart();
 
         String address = "akka.tcp://System@127.0.0.1:615"+String.valueOf(this.numberStage+1)+"/user/"+this.nextStageString;
-        this.nextStage = getContext().actorSelection(address);
+
+        int numberReconnection = 50;
+
+        for(int i=0; i<50 && this.nextStage==null; i++) {
+            try {
+                Future<ActorRef> future = getContext().actorSelection(address).resolveOne(Timeout.apply(5, TimeUnit.MINUTES));
+                this.nextStage = future.result(scala.concurrent.duration.Duration.create(5, TimeUnit.MINUTES), null);
+            } catch (InterruptedException | TimeoutException | ActorInitializationException | ActorNotFound e) {
+                System.out.println("Error, next stage not found, waiting for the next stage to be instantiated");
+                Thread.sleep(2000);
+            }
+        }
+
 
         switch (this.numberStage) {
             case 1 -> {
@@ -97,6 +119,14 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
         return Props.create(SupervisorActor.class, () -> new SupervisorActor(nextStageString, numberStage, windowSize, windowSlide));
     }
 
-    private static SupervisorStrategy strategy = new OneForOneStrategy(10, Duration.ofMinutes(1),
+    private static SupervisorStrategy strategy = new OneForOneStrategy(100, Duration.ofMinutes(1),
             DeciderBuilder.match(Exception.class, e -> SupervisorStrategy.restart()).build());
+
+    void confirmMessage(ConfirmMessage m){
+        persist(new MsgConfirm(m.getId()),
+                (e) -> {
+                    confirmDelivery(e.getId());
+                });
+    }
+
 }

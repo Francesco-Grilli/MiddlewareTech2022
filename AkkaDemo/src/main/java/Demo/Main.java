@@ -6,6 +6,10 @@ import akka.actor.ActorSystem;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+
 public class Main {
 
     public static void main(String[] args) throws InterruptedException {
@@ -21,7 +25,7 @@ public class Main {
                 ActorSelection supervisor2 = system.actorSelection("akka.tcp://System@127.0.0.1:6152/user/Supervisor2");
 
                 System.out.println(supervisor1.path());
-                supervisor1.tell(new DataMessage("Temperature", 15.3), ActorRef.noSender());
+                /*supervisor1.tell(new DataMessage("Temperature", 15.3), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 12.4), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 11.5), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 19.8), ActorRef.noSender());
@@ -30,14 +34,14 @@ public class Main {
                 supervisor1.tell(new DataMessage("Temperature", 25.2), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 27.2), ActorRef.noSender());
                 //Thread.sleep(1000);
-                supervisor2.tell(new ErrorMessage(), ActorRef.noSender());
+                //supervisor2.tell(new ErrorMessage(), ActorRef.noSender());
                 //supervisor1.tell(new ErrorMessage(), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 22.2), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 24.2), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 29.2), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 21.2), ActorRef.noSender());
                 supervisor1.tell(new DataMessage("Temperature", 22.2), ActorRef.noSender());
-                supervisor1.tell(new DataMessage("Temperature", 24.2), ActorRef.noSender());
+                supervisor1.tell(new DataMessage("Temperature", 24.2), ActorRef.noSender());*/
 
 
 
@@ -77,6 +81,31 @@ public class Main {
                 ActorSystem system = ActorSystem.create("System", conf);
                 ActorRef printer = system.actorOf(PrinterActor.props(), "Printer");
                 System.out.println(printer.path());
+            }
+
+            case 5 -> {
+                ActorSystem system = ActorSystem.create("System", ConfigFactory.load("test.conf"));
+                ActorSelection supervisor1 = system.actorSelection("akka.tcp://System@127.0.0.1:6151/user/Supervisor1");
+
+                ActorSelection supervisor2 = system.actorSelection("akka.tcp://System@127.0.0.1:6152/user/Supervisor2");
+
+
+                Random r = new Random();
+                for(int i=0; i<100; i++){
+                    supervisor1.tell(new DataMessage("Temperature", r.nextDouble()*29+1), ActorRef.noSender());
+                    if(r.nextInt()>=0.95) {
+                        supervisor2.tell(new ErrorMessage(), ActorRef.noSender());
+                    }
+                }
+                Thread.sleep(1000);
+                for(int i=0; i<20; i++){
+                    supervisor1.tell(new DataMessage("Temperature", r.nextDouble()*29+1), ActorRef.noSender());
+                    if(r.nextInt()>=0.95) {
+                        supervisor2.tell(new ErrorMessage(), ActorRef.noSender());
+                    }
+                }
+
+
             }
         }
 

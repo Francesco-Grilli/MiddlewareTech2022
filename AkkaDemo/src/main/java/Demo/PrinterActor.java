@@ -7,8 +7,15 @@ public class PrinterActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(DataMessage.class, (m) -> System.out.println("Printer - " + m.getData().first() +": " + m.getData().second()))
+                .match(DataMessage.class, this::executeMessage)
                 .build();
+    }
+
+    void executeMessage(DataMessage m){
+
+        System.out.println("Printer - " + m.getData().first() +": " + m.getData().second());
+        getSender().tell(new ConfirmMessage(m.getId()), getSelf());
+
     }
 
     public static Props props(){
