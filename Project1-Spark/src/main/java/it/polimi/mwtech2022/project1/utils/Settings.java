@@ -21,6 +21,8 @@ public class Settings {
     @Getter
     private String thresholdTopic;
     @Getter
+    private String lastThresholdTopic;
+    @Getter
     private String fiveMinTopic;
     @Getter
     private String hourTopic;
@@ -53,6 +55,7 @@ public class Settings {
             checkpointLocation = object.get("checkpoint-location").getAsString();
             inputTopic = object.get("input-topic").getAsString();
             thresholdTopic = object.get("threshold-topic").getAsString();
+            lastThresholdTopic = object.get("last-threshold-topic").getAsString();
             fiveMinTopic = object.get("5min-topic").getAsString();
             hourTopic = object.get("hour-topic").getAsString();
             dayTopic = object.get("day-topic").getAsString();
