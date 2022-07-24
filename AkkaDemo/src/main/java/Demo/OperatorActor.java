@@ -1,9 +1,9 @@
 package Demo;
 
 import akka.actor.ActorRef;
-import akka.persistence.AbstractPersistentActorWithAtLeastOnceDelivery;
-import akka.persistence.SaveSnapshotSuccess;
-import akka.persistence.SnapshotOffer;
+import akka.persistence.*;
+
+import java.lang.annotation.RetentionPolicy;
 import java.util.LinkedList;
 
 
@@ -36,7 +36,12 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
     public Receive createReceive() {
         return receiveBuilder()
                 .match(DataMessage.class, this::calculateWindow)
-                .match(SaveSnapshotSuccess.class, System.out::println)
+                .match(SaveSnapshotSuccess.class, (ss) -> {
+                    System.out.println(ss);
+                    deleteSnapshots(new SnapshotSelectionCriteria(scala.Long.MaxValue(), ss.metadata().timestamp()-1, 0, 0));
+                })
+                .match(DeleteSnapshotSuccess.class, System.out::println)
+                .match(DeleteMessagesSuccess.class, System.out::println)
                 .match(ErrorMessage.class, (m) -> {throw new Exception("Error message arrived");})
                 .match(ConfirmMessage.class, this::confirmMessage)
                 .build();
@@ -154,9 +159,7 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
     void confirmMessage(ConfirmMessage m){
 
         persist(new MsgConfirm(m.getId()),
-                (e) -> {
-                    confirmDelivery(e.getId());
-                }
+                (e) -> confirmDelivery(e.getId())
         );
 
     }

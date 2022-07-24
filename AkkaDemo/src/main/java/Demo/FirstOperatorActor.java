@@ -18,10 +18,10 @@ public class FirstOperatorActor extends OperatorActor{
         value = this.myWindow.stream().mapToDouble((a) -> a.getData().second()).average();
 
         if(value.isPresent()) {
-            return new DataMessage("Temperature", value.getAsDouble());
+            return new DataMessage("Tmperature", value.getAsDouble());
         }
         else{
-            return new DataMessage("Temperature", -1.0);
+            return new DataMessage("Tmperature", -1.0);
         }
     }
 

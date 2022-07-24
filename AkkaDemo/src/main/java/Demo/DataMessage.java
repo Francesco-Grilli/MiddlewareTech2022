@@ -10,7 +10,7 @@ public class DataMessage implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
     private Pair<String, Double> data;
-    private boolean sendToNext = false;
+        private boolean sendToNext = false;
     private long id;
 
     public DataMessage(DataMessage m, boolean sendToNext, long id){
@@ -46,6 +46,10 @@ public class DataMessage implements Serializable {
 
     public long getId() {
         return id;
+    }
+
+    public void setData(String s, Double d) {
+        this.data = new Pair<>(s, d);
     }
 
 }

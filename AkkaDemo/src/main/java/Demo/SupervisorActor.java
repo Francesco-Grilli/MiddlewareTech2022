@@ -4,10 +4,12 @@ import akka.actor.*;
 import akka.japi.pf.DeciderBuilder;
 import akka.persistence.AbstractPersistentActorWithAtLeastOnceDelivery;
 import akka.util.Timeout;
+import scala.Char;
 import scala.concurrent.Future;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -21,14 +23,15 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
     int windowSize;
     int windowSlide;
     int numberReplica;
+    int maxNumberReplica;
 
-    public SupervisorActor(String nextStageString, int numberStage, int windowSize, int windowSlide) {
+    public SupervisorActor(String nextStageString, int numberStage, int windowSize, int windowSlide, int maxNumberReplica) {
         this.children = new ArrayList<>();
         this.nextStageString = nextStageString;
         this.numberStage = numberStage;
         this.windowSize = windowSize;
         this.windowSlide = windowSlide;
-        this.numberReplica = 0;
+        this.maxNumberReplica = maxNumberReplica;
     }
 
     @Override
@@ -50,27 +53,6 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
         return getSelf().path().name();
     }
 
-    void reRoute(DataMessage message){
-
-        getSender().tell(new ConfirmMessage(message.getId()), getSelf());
-
-        if(message.isSendToNext()){
-            message.setSendToNext(false);
-            deliver(this.nextStage.path(), longId -> new DataMessage(message, false, longId));
-            //this.nextStage.tell(message, getSelf());
-        }
-        else{
-            ActorRef child = this.children.get(0);
-            deliver(child.path(), longId -> new DataMessage(message, false, longId));
-            //child.tell(message, getSelf());
-        }
-    }
-
-    void reRouteErrorMessage(ErrorMessage m){
-        ActorRef child = this.children.get(0);
-        child.tell(m, getSelf());
-    }
-
     @Override
     public void preStart() throws Exception {
         super.preStart();
@@ -79,7 +61,7 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
 
         int numberReconnection = 50;
 
-        for(int i=0; i<50 && this.nextStage==null; i++) {
+        for(int i=0; i<numberReconnection && this.nextStage==null; i++) {
             try {
                 Future<ActorRef> future = getContext().actorSelection(address).resolveOne(Timeout.apply(5, TimeUnit.MINUTES));
                 this.nextStage = future.result(scala.concurrent.duration.Duration.create(5, TimeUnit.MINUTES), null);
@@ -90,24 +72,11 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
         }
 
 
-        switch (this.numberStage) {
-            case 1 -> {
-                this.children.add(getContext().actorOf(FirstOperatorActor.props(this.windowSize, this.windowSlide, this.numberReplica),
-                        "FirstOperator" + this.numberStage + "." + this.numberReplica));
-                numberReplica++;
-            }
-            case 2 -> {
-                this.children.add(getContext().actorOf(SecondOperatorActor.props(this.windowSize, this.windowSlide, this.numberReplica),
-                        "SecondOperator" + this.numberStage + "." + this.numberReplica));
-                numberReplica++;
-            }
-            case 3 -> {
-                this.children.add(getContext().actorOf(ThirdOperatorActor.props(this.windowSize, this.windowSlide, this.numberReplica),
-                        "ThirdOperator" + this.numberStage + "." + this.numberReplica));
-                numberReplica++;
-            }
-            default -> System.out.println("Default case???");
+        for(int i=0; i<this.maxNumberReplica; i++) {
+            this.children.add(FactoryChildren.getChildrenByStage(getContext(), this.numberStage, this.windowSize, this.windowSlide, this.numberReplica));
+            this.numberReplica++;
         }
+
     }
 
     @Override
@@ -115,8 +84,43 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
         return strategy;
     }
 
-    public static Props props(String nextStageString, int numberStage, int windowSize, int windowSlide){
-        return Props.create(SupervisorActor.class, () -> new SupervisorActor(nextStageString, numberStage, windowSize, windowSlide));
+    void reRoute(DataMessage message){
+
+        getSender().tell(new ConfirmMessage(message.getId()), getSelf());
+
+        if(message.isSendToNext()){
+            message.setSendToNext(false);
+            deliver(this.nextStage.path(), longId -> new DataMessage(message, false, longId));
+            //this.nextStage.tell(message, getSelf());
+        }
+        else{
+            ActorRef child = getChildren(message);
+            deliver(child.path(), longId -> new DataMessage(message, false, longId));
+            //child.tell(message, getSelf());
+        }
+    }
+
+    ActorRef getChildren(DataMessage m){
+
+        String key = m.getData().first();
+        key = key.toLowerCase(Locale.ROOT);
+        char c = key.charAt(0);
+        int variance = (int) 'a';
+        int position = ((int) c)-variance;
+
+        int index = position%this.numberReplica;
+
+        return this.children.get(index);
+
+    }
+
+    void reRouteErrorMessage(ErrorMessage m){
+        ActorRef child = this.children.get(0);
+        child.tell(m, getSelf());
+    }
+
+    public static Props props(String nextStageString, int numberStage, int windowSize, int windowSlide, int maxNumberReplica){
+        return Props.create(SupervisorActor.class, () -> new SupervisorActor(nextStageString, numberStage, windowSize, windowSlide, maxNumberReplica));
     }
 
     private static SupervisorStrategy strategy = new OneForOneStrategy(100, Duration.ofMinutes(1),
@@ -124,9 +128,7 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
 
     void confirmMessage(ConfirmMessage m){
         persist(new MsgConfirm(m.getId()),
-                (e) -> {
-                    confirmDelivery(e.getId());
-                });
+                (e) -> confirmDelivery(e.getId()));
     }
 
 }
