@@ -15,7 +15,10 @@ import static org.apache.spark.sql.functions.*;
 
 public class DataAnalysis {
 
-    //TODO: Serious testing on actual times (hours, days, weeks); should work for average is the same used for 5-min
+    // TODO: Serious testing on actual times (hours, days, weeks); should work for average is the same used for 5-min
+    // TODO: Serious testing of top-10 query, developed on the basis of 5-min averages; test on hours
+    // TODO: Test watermarks, try sending late data
+    // TODO: Redirect top10 query to a kafka topic
 
     // TODO: watermark on result tables (but likely not only)
     // TODO: check watermarks, on window.start or window.end?
@@ -48,14 +51,16 @@ public class DataAnalysis {
 //            ○ by definition, a point of interest with a value above T has a streak of 0;
 //            ○ at any given point in time, the query should compute the point (or points) of interest with the
 //              longest streak.
+        // ASSUMPTION: Noise threshold never changes
         // IMPORTANT!! : in streaming queries always use distinct checkpoint locations
         //               Error on deployment is thrown otherwise
 
+        /*----------------------------------------------/
+        /            INPUT AND MAP_FUNCTIONS            /
+        /----------------------------------------------*/
 
-        // FIRST QUERY: compute average from incoming data (grouped by POI) over 5-minute tumbling windows
-
-        // expected input (sample)
-        // PoiRegion (key), "noise,timestamp" (value) <-- all values on Kafka topics share this form
+        // expected input
+        // Poi (key), "noise,timestamp" (value) <-- all values on Kafka topics share this form
         // first input to the system; receives all measurements
         final Dataset<Row> input = spark
                 .readStream()
@@ -67,8 +72,8 @@ public class DataAnalysis {
                 //remove this line to print on screen also partitions, offsets, ...
                 .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)");
 
-        //MapFunction to convert input as "Key","Value,Timestamp" in Key - Value - Timestamp
-        //Requires key as string and value as string from kafka topics
+        //MapFunction to convert input as "Key","Value,Timestamp" in Key - Value - Timestamp - TimestampMillis
+        //Requires both key and value as strings from kafka topics
         MapFunction<Tuple2<String, String>, Tuple4<String, Double, Timestamp, Long>> inputToRow  = (x -> {
             String key = x._1();
             String[] splitValue = x._2().split(",");
@@ -79,11 +84,16 @@ public class DataAnalysis {
         });
 
         //MapFunction to convert row as Key - Value - Timestamp into output "Key","Value,Timestamp"
-        //Produces key as string and value as string for kafka topics
+        //Produces both key and value as strings for kafka topics
         MapFunction<Row, Tuple2<String, String>> rowToOutput = (x -> {
             long ts = ((Timestamp) (x.get(2))).getTime();
             return new Tuple2<>(x.get(0).toString(), x.get(1).toString() + "," + ts);
         });
+
+        /*----------------------------------------------/
+        /               QUERY: 5-MINUTE AVG             /
+        /               (tumbling windows)              /
+        /----------------------------------------------*/
 
         // used for two queries, 5MinuteAverage and Threshold
         final Dataset<Row> poiNoise = input
@@ -92,10 +102,10 @@ public class DataAnalysis {
                 .toDF("POI", "Noise", "Timestamp", "TSLong");
 
         final Dataset<Row> fiveMinuteAvg = poiNoise
-                .withWatermark("Timestamp", "2 seconds")
+                .withWatermark("Timestamp", "10 seconds")
                 //decibel to linear conversion: 10^(value/10)
                 .withColumn("Noise-linear", pow(10, col("Noise").divide(10)))
-                .groupBy(window(col("Timestamp"), "5 minutes", "5 minutes"),
+                .groupBy(window(col("Timestamp"), "1 minutes", "1 minutes"),
                         col("POI")) // assuming unique POINames
                 //average on linear values
                 .avg("Noise-linear")
@@ -116,33 +126,10 @@ public class DataAnalysis {
                 .trigger(Trigger.ProcessingTime("10 seconds")) //periodic query: query computation every /*processing time*/
                 .start();
 
-        // SECOND QUERY: select from input values the ones that overcome the threshold
-
-//        // query to find all measurements within watermark that went over the threshold
-//        // TODO: handle log compaction on kafka topic
-//        // TODO: double-check corner cases and actual correctness
-//        final StreamingQuery thresholdQuery = poiNoise
-//                .withWatermark("Timestamp", "2 minute")
-//                .filter(col("Noise").geq(settings.getThreshold()))
-//                .select(col("POIName"), col("TSLong"), col("Noise"))
-//                .map((MapFunction<Row, Tuple2<String, String>>) x -> {
-//                    Gson gson = new Gson();
-//                    JsonObject outputObj = new JsonObject();
-//                    outputObj.addProperty("timestamp", x.get(1).toString());
-//                    outputObj.addProperty("noise", x.get(2).toString());
-//                    return new Tuple2<>(x.get(0).toString(), gson.toJson(outputObj));
-//                }, Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
-//                .toDF("key", "value")
-//                .writeStream()
-//                .format("kafka")
-//                .outputMode("update")
-//                .option("checkpointLocation", settings.getCheckpointLocation() + "/thresholdQuery")
-//                .option("kafka.bootstrap.servers", settings.getKafkaServer())
-//                .option("topic", settings.getThresholdTopic())
-//                .trigger(Trigger.ProcessingTime("30 seconds")) //periodic query: query computation every /*processing time*/
-//                .start();
-
-        // THIRD QUERY: compute moving average for hours; sliding windows, aggregate five-minute measurements
+        /*----------------------------------------------/
+        /            QUERY: MOVING AVG HOURS            /
+        /   (sliding windows, aggregates 5-min meas.)   /
+        /----------------------------------------------*/
 
         // input from topic of five-minute tumbling window averages
         final Dataset<Row> fiveMinInput = spark
@@ -181,20 +168,11 @@ public class DataAnalysis {
                 .trigger(Trigger.ProcessingTime("2 minutes")) //periodic query: query computation every /*processing time*/
                 .start();
 
-//        // duplicate hour query to use in another context (top k query)
-//        final StreamingQuery anotherHourQuery = hourlyAverages
-//                .writeStream()
-//                .format("kafka")
-//                .outputMode("append")
-//                .option("checkpointLocation", "/mnt/c/tmp/new3")
-//                .option("kafka.bootstrap.servers", settings.getKafkaServer())
-//                .option("topic", "nodered-anotherHour")
-//                .trigger(Trigger.ProcessingTime("2 minutes")) //periodic query: query computation every /*processing time*/
-//                .start();
+        /*----------------------------------------------/
+        /            QUERY: MOVING AVG DAYS             /
+        /   (sliding windows, aggregates hour meas.)    /
+        /----------------------------------------------*/
 
-        // FOURTH QUERY: compute daily average using results from hour query
-
-        // TODO: convert flatmap into map
         final Dataset<Row> hourInput = spark
                 .readStream()
                 .format("kafka")
@@ -228,7 +206,10 @@ public class DataAnalysis {
                 .trigger(Trigger.ProcessingTime("5 minutes")) //periodic query: query computation every /*processing time*/
                 .start();
 
-        // FIFTH QUERY: compute weekly moving average from daily averages
+        /*----------------------------------------------/
+        /           QUERY: MOVING AVG WEEKS             /
+        /    (sliding windows, aggregates day meas.)    /
+        /----------------------------------------------*/
 
         final Dataset<Row> dayInput = spark
                 .readStream()
@@ -261,6 +242,124 @@ public class DataAnalysis {
                 .option("topic", settings.getWeekTopic())
                 .trigger(Trigger.ProcessingTime("1 hour")) //periodic query: query computation every /*processing time*/
                 .start();
+
+        /*----------------------------------------------/
+        /     QUERY: TOP-10 POI WITH HIGHEST NOISE      /
+        /           LEVEL OVER THE LAST HOUR            /
+        /----------------------------------------------*/
+
+        // input from topic of hour averages
+        final Dataset<Row> hourBatchInput = spark
+                .read()
+                .format("kafka")
+                .option("kafka.bootstrap.servers", settings.getKafkaServer())
+                .option("subscribe", settings.getHourTopic())
+                //"startingOffsets - earliest" is the default for batch
+                .load()
+                .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+                .as(Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+                .map(inputToRow, Encoders.tuple(Encoders.STRING(), Encoders.DOUBLE(), Encoders.TIMESTAMP(), Encoders.LONG()))
+                .toDF("POI", "Noise", "Timestamp", "TSLong");
+
+        //find last hour with batch processing
+        final Dataset<Row> lastHourBatch = hourBatchInput
+                .select("TSLong")
+                .distinct()
+                .sort(desc("TSLong"))
+                .limit(1)
+                .withColumnRenamed("TSLong", "LastHour");
+
+        final StreamingQuery top10Query = hourInput
+                .withWatermark("Timestamp", "10 minutes")
+                .groupBy("POI", "Noise", "Timestamp", "TSLong")
+                .max("TSLong") //fake aggregation, actually a waste of resources (but needed to sort...)
+                .join(lastHourBatch, expr("TSLong = LastHour"))
+                .sort(desc("TSLong"), desc("Noise"))
+                .limit(10)
+//                .select("POI", "Noise", "Timestamp")
+//                .map(rowToOutput, Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+//                .toDF("key", "value")
+                .writeStream()
+                .format("console")
+                .outputMode("complete")
+                .option("checkpointLocation", settings.getCheckpointLocation() + "/lastHourValues1")
+//                .option("kafka.bootstrap.servers", settings.getKafkaServer())
+//                .option("topic", settings.getHourTopic())
+                .trigger(Trigger.ProcessingTime("15 seconds")) //periodic query: query computation every /*processing time*/
+                .start();
+
+        /*----------------------------------------------/
+        /     QUERY: LONGEST STREAK OVER THRESHOLD      /
+        /  (actual streak should be computed elsewhere) /
+        /----------------------------------------------*/
+
+        // query to select all over-threshold measurements within watermark
+        final StreamingQuery thresholdQuery = poiNoise
+                .withWatermark("Timestamp", "2 minute")
+                .filter(col("Noise").geq(settings.getThreshold()))
+                .select(col("POI"), col("Noise"), col("Timestamp"))
+                .map(rowToOutput, Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+                .toDF("key", "value")
+                .writeStream()
+                .format("kafka")
+                .outputMode("update")
+                .option("checkpointLocation", settings.getCheckpointLocation() + "/thresholdQuery")
+                .option("kafka.bootstrap.servers", settings.getKafkaServer())
+                .option("topic", settings.getThresholdTopic())
+                .trigger(Trigger.ProcessingTime("30 seconds")) //periodic query: query computation every /*processing time*/
+                .start();
+
+        // batch input; all points over threshold
+        final Dataset<Row> overThresholdBatchInput = spark
+                .read()
+                .format("kafka")
+                .option("kafka.bootstrap.servers", settings.getKafkaServer())
+                .option("subscribe", settings.getThresholdTopic())
+                .load()
+                .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+                .as(Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+                .map(inputToRow, Encoders.tuple(Encoders.STRING(), Encoders.DOUBLE(), Encoders.TIMESTAMP(), Encoders.LONG()))
+                .toDF("POI", "Noise", "Timestamp", "TSLong");
+
+        // stream input; all points over threshold
+        final Dataset<Row> overThresholdStreamInput = spark
+                .readStream()
+                .format("kafka")
+                .option("kafka.bootstrap.servers", settings.getKafkaServer())
+                .option("subscribe", settings.getThresholdTopic())
+                .load()
+                .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+                .as(Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+                .map(inputToRow, Encoders.tuple(Encoders.STRING(), Encoders.DOUBLE(), Encoders.TIMESTAMP(), Encoders.LONG()))
+                .toDF("POI", "Noise", "Timestamp", "TSLong");
+
+        // select latest point over threshold among all received ones, per POI
+        final Dataset<Row> maxTsOverThresholdBatch = overThresholdBatchInput
+                .groupBy("POI")
+                .max("TSLong")
+                .withColumnRenamed("POI", "GroupByPOI")
+                .withColumnRenamed("max(TSLong)", "LatestTs");
+
+        // query to update last-over-threshold topic
+        final StreamingQuery lastOverThresholdQuery = overThresholdStreamInput
+                .join(maxTsOverThresholdBatch, expr("TSLong = LatestTs AND POI = GroupByPOI"))
+                .groupBy("POI", "Timestamp")
+                .max("Noise")
+                .select(col("POI"), col("max(Noise)"), col("Timestamp"))
+                .map(rowToOutput, Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+                .toDF("key", "value")
+                .writeStream()
+                .format("kafka")
+                .outputMode("update")
+                .option("checkpointLocation", settings.getCheckpointLocation() + "/lastOverThresholdQuery5")
+                .option("kafka.bootstrap.servers", settings.getKafkaServer())
+                .option("topic", settings.getLastThresholdTopic())
+                .trigger(Trigger.ProcessingTime("30 seconds")) //periodic query: query computation every /*processing time*/
+                .start();
+
+        /*----------------------------------------------/
+        /        TERMINATION HANDLING SECTION           /
+        /----------------------------------------------*/
 
         try {
             //await termination of all the queries which have been formerly defined

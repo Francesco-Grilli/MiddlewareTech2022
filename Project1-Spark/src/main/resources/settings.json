@@ -1,14 +1,15 @@
 {
   "spark-master": "spark://localhost:7077",
   "kafka-server": "localhost:9092",
-  "input-topic": "nodered-try",
+  "input-topic": "nodered-input",
   "threshold-topic": "threshold-try",
-  "5min-topic": "nodered-try-ter",
+  "last-threshold-topic": "last-t-try",
+  "5min-topic": "test-fiveMin",
   "hour-topic": "nodered-hour",
   "day-topic": "nodered-day",
   "week-topic": "nodered-week",
   "top-10-topic": "nodered-top10",
-  "threshold": 75,
+  "threshold": 100,
   "checkpoint-location": "/mnt/c/tmp",
   "shuffle.partitions": 8
 }
