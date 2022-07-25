@@ -66,7 +66,7 @@ void Simulator::mosquittoInit()
 
 		this->mosq = mosquitto_new("publisher-c++", true, nullptr);
 
-		if (mosquitto_connect(this->mosq, "test.mosquitto.org", 1883, 60) != MOSQ_ERR_SUCCESS) {
+		if (mosquitto_connect(this->mosq, "mqtt.neslab.it", 3200, 60) != MOSQ_ERR_SUCCESS) {
 			throw std::exception();
 			mosquitto_destroy(this->mosq);
 		}
@@ -97,7 +97,11 @@ void Simulator::closeMosquitto()
 void Simulator::sendDataMosquitto(double x, double y, double noise)
 {
 
-	std::time_t ms = std::time(nullptr);
+
+	int64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::system_clock::now().time_since_epoch()
+		).count();
+
 
 	std::stringstream message;
 	
@@ -105,7 +109,7 @@ void Simulator::sendDataMosquitto(double x, double y, double noise)
 
 	std::string s = message.str();
 
-	mosquitto_publish(this->mosq, nullptr, "Receiver1", s.size(), s.c_str(), 0, false);
+	mosquitto_publish(this->mosq, nullptr, "testproject12345", s.size(), s.c_str(), 0, false);
 
 }
 
@@ -157,13 +161,23 @@ void Simulator::averagingData()
 
 			double currentLatitude;
 			double currentLongitude;
+			double correctionValue = 180.0 / (double)M_PI;
 
-			currentLatitude = this->parameters.latitude + 
-								((double)((double)j*this->parameters.granularity + (double)this->parameters.granularity/2) / (double)6371) * 
-							((double)180 / M_PI);
-			currentLongitude = this->parameters.longitude + 
-								((double)(i*this->parameters.granularity + (double)this->parameters.granularity/2) / (double)6371) * 
-							((double)180 / M_PI) / std::cos(this->parameters.latitude * M_PI / (double)180);
+			currentLatitude = this->parameters.latitude -
+								((double)((double)j)*(double)this->parameters.granularity) / ((double)6378137) *
+							correctionValue;
+			currentLongitude = this->parameters.longitude +
+								((double)(((double)i) * (double)this->parameters.granularity) / (double)6378137) *
+							correctionValue / std::cos(this->parameters.latitude * (double)M_PI/(double)180);
+
+
+			
+
+			std::cout << "Current lat long" << this->parameters.latitude << "   " << this->parameters.longitude << "\n";
+
+			/*currentLatitude = this->parameters.latitude - (double)j/111.32;
+			currentLongitude = this->parameters.longitude + (double)i/111.32 / std::cos(this->parameters.latitude * 0.01745);*/
+
 
 
 			sendDataMosquitto(currentLatitude, currentLongitude, sum);
