@@ -1,13 +1,9 @@
 # A guide to the usage of the Node-RED section
 
----
-
 ## Index
 - [Required packages](#required-packages)
 - [Import notes](#import-notes)
 - [Starting notes](#starting-notes)
-
----
 
 ### Required packages
 The flows in this directory contain nodes that are not available
@@ -20,8 +16,6 @@ necessary to download and add to the palette some additional packages:
 We strongly suggest to download the additional packages before trying
 to import the flows, otherwise the related nodes might not be recognized
 by the application and flows might be imported as incomplete.
-
----
 
 ### Import notes
 Upon importing the flows some additional steps are required to let them
@@ -43,8 +37,6 @@ to update also the setting file in the Spark section.
 You might want, instead, to change the topic used in the MQTT node; mind
 you to update all related references as well in other sections configuration
 files.
-
----
 
 ### Starting notes
 In order to start the system, simply deploy the nodes on your machine
