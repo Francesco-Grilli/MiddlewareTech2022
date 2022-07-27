@@ -1,0 +1,324 @@
+[
+    {
+        "id": "dee98f84a5f9d658",
+        "type": "tab",
+        "label": "Average dumps",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "1921764779642888",
+        "type": "function",
+        "z": "dee98f84a5f9d658",
+        "name": "Select message attributes",
+        "func": "kafkaObject = msg.payload;\nsplitPayload = kafkaObject.value.split(\",\");\nts = Number(splitPayload[1]);\ntimestamp = new Date(ts);\ndivisor = 1000*60*60*24;\n\ncleanMsg = {\n    topic : msg.topic,\n    key : kafkaObject.key,\n    timestamp : timestamp.toLocaleString().replace(\",\" , \" \"),\n    ts: ts,\n    mod: ts % divisor,\n    value : splitPayload[0],\n}\n\nreturn cleanMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 100,
+        "wires": [
+            [
+                "54032dd63f8634ce"
+            ]
+        ]
+    },
+    {
+        "id": "54032dd63f8634ce",
+        "type": "function",
+        "z": "dee98f84a5f9d658",
+        "name": "Convert for csv",
+        "func": "let pld = msg.key + \",\";\npld = pld + msg.timestamp + \",\";\npld = pld + msg.ts + \",\";\npld = pld + msg.mod + \",\";\npld = pld + msg.value;\n\nnewMsg = {\n    payload : pld\n}\n\n\nif (msg.topic == 'input') return [newMsg, null, null, null, null];\nelse if (msg.topic == 'fiveMinAvg') return [null, newMsg, null, null, null];\nelse if (msg.topic == 'hourAvg') return [null, null, newMsg, null, null];\nelse if (msg.topic == 'dayAvg') return [null, null, null, newMsg, null];\nelse if (msg.topic == 'weekAvg') return [null, null, null, null, newMsg];\nelse return;",
+        "outputs": 5,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 220,
+        "wires": [
+            [
+                "9b0cd343bef10e34"
+            ],
+            [
+                "490fa1f1bed85f18"
+            ],
+            [
+                "c2fc0669f2174912"
+            ],
+            [
+                "bd2de3d9c448d035"
+            ],
+            [
+                "246ab91267e23625"
+            ]
+        ]
+    },
+    {
+        "id": "490fa1f1bed85f18",
+        "type": "file",
+        "z": "dee98f84a5f9d658",
+        "name": "5 minute averages to csv",
+        "filename": "C:\\tmp\\fiveMinAvg.csv",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 810,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "47a668991c565a85",
+        "type": "kafkajs-consumer",
+        "z": "dee98f84a5f9d658",
+        "name": "KafkaJS Input Consumer",
+        "client": "ddca50d356b3a3e7",
+        "groupid": "",
+        "topic": "input",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": 30000,
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": false,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 170,
+        "y": 160,
+        "wires": [
+            [
+                "1921764779642888"
+            ]
+        ]
+    },
+    {
+        "id": "9b0cd343bef10e34",
+        "type": "file",
+        "z": "dee98f84a5f9d658",
+        "name": "Write input to csv",
+        "filename": "C:\\tmp\\input.csv",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 790,
+        "y": 140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "246ab91267e23625",
+        "type": "file",
+        "z": "dee98f84a5f9d658",
+        "name": "Week averages to csv",
+        "filename": "C:\\tmp\\weekAvg.csv",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 800,
+        "y": 300,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c2fc0669f2174912",
+        "type": "file",
+        "z": "dee98f84a5f9d658",
+        "name": "Hour averages to csv",
+        "filename": "C:\\tmp\\hourAvg.csv",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 800,
+        "y": 220,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "bd2de3d9c448d035",
+        "type": "file",
+        "z": "dee98f84a5f9d658",
+        "name": "Daily averages to csv",
+        "filename": "C:\\tmp\\dayAvg.csv",
+        "appendNewline": true,
+        "createDir": false,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 800,
+        "y": 260,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ef860289c86ae640",
+        "type": "kafkajs-consumer",
+        "z": "dee98f84a5f9d658",
+        "name": "KafkaJS 5min Consumer",
+        "client": "ddca50d356b3a3e7",
+        "groupid": "",
+        "topic": "fiveMinAvg",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": 30000,
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": false,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 170,
+        "y": 200,
+        "wires": [
+            [
+                "1921764779642888"
+            ]
+        ]
+    },
+    {
+        "id": "89502156eb1ec941",
+        "type": "kafkajs-consumer",
+        "z": "dee98f84a5f9d658",
+        "name": "KafkaJS Hour Consumer",
+        "client": "ddca50d356b3a3e7",
+        "groupid": "",
+        "topic": "hourAvg",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": 30000,
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": false,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 170,
+        "y": 240,
+        "wires": [
+            [
+                "1921764779642888"
+            ]
+        ]
+    },
+    {
+        "id": "9f78e81229e29211",
+        "type": "kafkajs-consumer",
+        "z": "dee98f84a5f9d658",
+        "name": "KafkaJS Day Consumer",
+        "client": "ddca50d356b3a3e7",
+        "groupid": "",
+        "topic": "dayAvg",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": 30000,
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": false,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 160,
+        "y": 280,
+        "wires": [
+            [
+                "1921764779642888"
+            ]
+        ]
+    },
+    {
+        "id": "1294b84b21c31461",
+        "type": "kafkajs-consumer",
+        "z": "dee98f84a5f9d658",
+        "name": "KafkaJS Week Consumer",
+        "client": "ddca50d356b3a3e7",
+        "groupid": "",
+        "topic": "weekAvg",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": 30000,
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": false,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 170,
+        "y": 320,
+        "wires": [
+            [
+                "1921764779642888"
+            ]
+        ]
+    },
+    {
+        "id": "046d494c02e701e6",
+        "type": "comment",
+        "z": "dee98f84a5f9d658",
+        "name": "Note about import",
+        "info": "!!IMPORTANT!!\n\nUpon importing this flow, it's required to update the path of the csv files on which the filter function is going to write. ",
+        "x": 190,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "ddca50d356b3a3e7",
+        "type": "kafkajs-client",
+        "name": "Test Client",
+        "brokers": "127.0.0.1:9092",
+        "clientid": "384",
+        "connectiontimeout": "3000",
+        "requesttimeout": "25000",
+        "advancedretry": false,
+        "maxretrytime": "30000",
+        "initialretrytime": "300",
+        "factor": "0.2",
+        "multiplier": "2",
+        "retries": "5",
+        "auth": "none",
+        "tlsselfsign": false,
+        "tlscacert": "",
+        "tlsclientcert": "",
+        "tlsprivatekey": "",
+        "tlspassphrase": "",
+        "saslssl": true,
+        "saslmechanism": "plain",
+        "loglevel": "error"
+    }
+]

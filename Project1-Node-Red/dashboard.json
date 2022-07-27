@@ -1,0 +1,421 @@
+[
+    {
+        "id": "77ec4d599dcc5e25",
+        "type": "tab",
+        "label": "Dashboard",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "ce0322c6c3bee9bf",
+        "type": "ui_button",
+        "z": "77ec4d599dcc5e25",
+        "name": "\"Compute streak\" button",
+        "group": "1ff2f07bb1fffdd2",
+        "order": 1,
+        "width": "3",
+        "height": "1",
+        "passthru": false,
+        "label": "Compute Streak",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "date",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 290,
+        "y": 100,
+        "wires": [
+            [
+                "1376dd65a2a4143c"
+            ]
+        ]
+    },
+    {
+        "id": "319057fae1ad7905",
+        "type": "function",
+        "z": "77ec4d599dcc5e25",
+        "name": "Update from Kafka topic",
+        "func": "kafkaObject = msg.payload;\nsplitPayload = kafkaObject.value.split(\",\");\n\ncleanMsg = {\n    payload: 'update',\n    topic : msg.topic,\n    poi : kafkaObject.key,\n    value : Number(splitPayload[0]),\n    timestamp : Number(splitPayload[1]),\n}\n\nreturn cleanMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 270,
+        "y": 160,
+        "wires": [
+            [
+                "1376dd65a2a4143c"
+            ]
+        ]
+    },
+    {
+        "id": "5ecbd1ef7329a734",
+        "type": "kafkajs-consumer",
+        "z": "77ec4d599dcc5e25",
+        "name": "KafkaJS Input Consumer",
+        "client": "ddca50d356b3a3e7",
+        "groupid": "",
+        "topic": "lastOverThreshold",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": "30002",
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": true,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 170,
+        "y": 240,
+        "wires": [
+            [
+                "319057fae1ad7905"
+            ]
+        ]
+    },
+    {
+        "id": "1376dd65a2a4143c",
+        "type": "function",
+        "z": "77ec4d599dcc5e25",
+        "name": "",
+        "func": "if (msg.payload == 'update') {\n    //initialize hashmaps if not present\n    if (!context.thresholdTimestamps)\n        context.thresholdTimestamps = new Map();\n    if (!context.thresholdNoises)\n        context.thresholdNoises = new Map();\n    //initialize oldest if not present\n    //or update if poi is the same as the entering one\n    //set oldest not to be the actual oldest in that case;\n    //then updated with updateOldest function\n    if (!context.oldestTs || context.oldestTs.poi == msg.poi){\n        context.oldestTs = {\n            poi: msg.poi,\n            timestamp: msg.timestamp,\n            noise: msg.value\n        }\n    }\n    //update maps and return no value\n    context.thresholdTimestamps.set(msg.poi, msg.timestamp);\n    context.thresholdNoises.set(msg.poi, msg.value);\n    //update oldest if poi is the same of the current oldest\n    if (context.oldestTs.poi == msg.poi){\n        context.thresholdTimestamps.forEach(updateOldest);\n    }\n} else if (msg.payload == 'debug'){\n    console.log(\"OldestTs: \" + JSON.stringify(context.oldestTs));\n    console.log(\"TS map: \" + JSON.stringify(context.thresholdTimestamps, replacer));\n    console.log(\"Noises map: \" + JSON.stringify(context.thresholdNoises, replacer));\n} else { //message payload should contain timestamp\n    if (!context.oldestTs) return;\n    else {\n        //compute streak, assumes comparison in ms; results in seconds\n        streak = Math.round((msg.payload - context.oldestTs.timestamp)/1000);\n        return {\n            payload: [{\n                poi : context.oldestTs.poi,\n                lastTsOverTh : (new Date(context.oldestTs.timestamp)).toLocaleString(),\n                lastNOverTh : context.oldestTs.noise.toFixed(3),\n                streak : streak\n            }]\n        }\n    }\n}\n\n//function to update oldest value with an actually older one\nfunction updateOldest(value, key){\n    // console.log(\"Value: \" + value);\n    // console.log(\"Key:\" + key);\n    if (context.thresholdTimestamps.get(key) < context.oldestTs.timestamp){\n        context.oldestTs.poi = key;\n        context.oldestTs.timestamp = value;\n        context.oldestTs.noise = context.thresholdNoises.get(key);\n    }\n}\n\n//function needed for debug, allows printing of maps\n//maps are not stringify-able, thus another method is needed to print also their content\n//taken from: https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map\nfunction replacer(key, value) {\n  if(value instanceof Map) {\n    return {\n      dataType: 'Map',\n      value: Array.from(value.entries()), // or with spread: value: [...value]\n    };\n  } else {\n    return value;\n  }\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 160,
+        "wires": [
+            [
+                "e241f3eafa69c63a"
+            ]
+        ]
+    },
+    {
+        "id": "6f89f398ba0a9cca",
+        "type": "inject",
+        "z": "77ec4d599dcc5e25",
+        "name": "Kafka Duomo",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "poi",
+                "v": "Duomo",
+                "vt": "str"
+            },
+            {
+                "p": "timestamp",
+                "v": "",
+                "vt": "date"
+            },
+            {
+                "p": "value",
+                "v": "122.569",
+                "vt": "num"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "update",
+        "payloadType": "str",
+        "x": 250,
+        "y": 340,
+        "wires": [
+            [
+                "1376dd65a2a4143c"
+            ]
+        ]
+    },
+    {
+        "id": "3ac3f08ae735df5b",
+        "type": "inject",
+        "z": "77ec4d599dcc5e25",
+        "name": "Debug input",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "debug",
+        "payloadType": "str",
+        "x": 230,
+        "y": 300,
+        "wires": [
+            [
+                "1376dd65a2a4143c"
+            ]
+        ]
+    },
+    {
+        "id": "4dda1ab46ea4618c",
+        "type": "comment",
+        "z": "77ec4d599dcc5e25",
+        "name": "Streak computation section",
+        "info": "This section of the flow computes the streak at each request from the dashboard (upon press of a button)\nInjection nodes are present only for debugging purposes",
+        "x": 230,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "e241f3eafa69c63a",
+        "type": "ui_table",
+        "z": "77ec4d599dcc5e25",
+        "group": "1ff2f07bb1fffdd2",
+        "name": "Streak table",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "columns": [
+            {
+                "field": "poi",
+                "title": "Point of interest",
+                "width": "",
+                "align": "left",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "lastTsOverTh",
+                "title": "Last time over th.",
+                "width": "",
+                "align": "left",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "lastNOverTh",
+                "title": "Last noise over th.",
+                "width": "",
+                "align": "left",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "streak",
+                "title": "Streak (sec)",
+                "width": "18%",
+                "align": "left",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            }
+        ],
+        "outputs": 0,
+        "cts": false,
+        "x": 730,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "3d9aee25b5e8ab3e",
+        "type": "comment",
+        "z": "77ec4d599dcc5e25",
+        "name": "Top10 points section",
+        "info": "This section of the flow builds the table that shows the top 10 points with the highest level of noise over the last hour",
+        "x": 210,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "6d3c0a7e1bf058ec",
+        "type": "function",
+        "z": "77ec4d599dcc5e25",
+        "name": "Update from Kafka topic",
+        "func": "kafkaObject = msg.payload;\nsplitPayload = kafkaObject.value.split(\",\");\n\ncleanMsg = {\n    poi : kafkaObject.key,\n    value : Number(splitPayload[0]),\n    timestamp : Number(splitPayload[1]),\n}\n\nreturn cleanMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 270,
+        "y": 500,
+        "wires": [
+            [
+                "2a9ab93c7f72f5db"
+            ]
+        ]
+    },
+    {
+        "id": "d5493e779ffb282d",
+        "type": "kafkajs-consumer",
+        "z": "77ec4d599dcc5e25",
+        "name": "KafkaJS Input Consumer",
+        "client": "ddca50d356b3a3e7",
+        "groupid": "",
+        "topic": "top10noisiest",
+        "advancedoptions": true,
+        "autocommitinterval": 5000,
+        "autocommitthreshold": 100,
+        "sessiontimeout": "30002",
+        "rebalancetimeout": 60000,
+        "heartbeatinterval": 3000,
+        "metadatamaxage": 300000,
+        "maxbytesperpartition": 1048576,
+        "minbytes": 1,
+        "maxbytes": 10485760,
+        "maxwaittimeinms": 5000,
+        "frombeginning": true,
+        "clearoffsets": false,
+        "allowautotopiccreation": true,
+        "x": 170,
+        "y": 580,
+        "wires": [
+            [
+                "6d3c0a7e1bf058ec"
+            ]
+        ]
+    },
+    {
+        "id": "2a9ab93c7f72f5db",
+        "type": "function",
+        "z": "77ec4d599dcc5e25",
+        "name": "",
+        "func": "//can receive a single type of message\nif(!context.lastHour) context.lastHour = 0;\nif(!context.table) context.table = [];\n//receive message outdated wrt the current last hour\nif(msg.timestamp < context.lastHour){\n  return;  \n} \n//receive message related to current hour\nelse if (msg.timestamp == context.lastHour){\n    let i;\n    for (i = context.table.length; i >= 0; i--){\n        if (i == 0) {\n            context.table.splice(i, 0, getObject(msg));\n        }\n        else if ((context.table)[i-1].noise >= msg.value){\n            context.table.splice(i, 0, getObject(msg));\n            break;\n        }\n    }\n    //check array never goes over length 10?\n}\n//If timestamp in incoming message is later than last hour one\n//update last hour, flush the table, insert new value\nelse if(msg.timestamp > context.lastHour) {\n    context.lastHour = msg.timestamp;\n    context.table = [];\n    context.table.push(getObject(msg));\n}\nconsole.log(\"Analysed message: \" + JSON.stringify(msg));\nconsole.log(\"Currently last hour: \" + JSON.stringify(context.lastHour));\nconsole.log(\"Current table:\" + JSON.stringify(context.table));\n\n// return context.table;\nreturn {\n    payload: context.table\n};\n\nfunction getObject(msg){\n    return {\n        poi : msg.poi,\n        noise : msg.value.toFixed(3),\n        timestamp : (new Date(msg.timestamp)).toLocaleString()\n    }\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 500,
+        "wires": [
+            [
+                "e032b756e75f49fb"
+            ]
+        ]
+    },
+    {
+        "id": "e032b756e75f49fb",
+        "type": "ui_table",
+        "z": "77ec4d599dcc5e25",
+        "group": "92be77f1c0ef3169",
+        "name": "Top10 table",
+        "order": 2,
+        "width": "12",
+        "height": "6",
+        "columns": [
+            {
+                "field": "poi",
+                "title": "Point of interest",
+                "width": "",
+                "align": "left",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "noise",
+                "title": "Average noise",
+                "width": "",
+                "align": "left",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            },
+            {
+                "field": "timestamp",
+                "title": "Date, Time",
+                "width": "",
+                "align": "left",
+                "formatter": "plaintext",
+                "formatterParams": {
+                    "target": "_blank"
+                }
+            }
+        ],
+        "outputs": 0,
+        "cts": false,
+        "x": 730,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "1ff2f07bb1fffdd2",
+        "type": "ui_group",
+        "name": "Good noise streak",
+        "tab": "a9905ff66c12ecae",
+        "order": 1,
+        "disp": true,
+        "width": "12",
+        "collapse": true,
+        "className": ""
+    },
+    {
+        "id": "ddca50d356b3a3e7",
+        "type": "kafkajs-client",
+        "name": "Test Client",
+        "brokers": "127.0.0.1:9092",
+        "clientid": "384",
+        "connectiontimeout": "3000",
+        "requesttimeout": "25000",
+        "advancedretry": false,
+        "maxretrytime": "30000",
+        "initialretrytime": "300",
+        "factor": "0.2",
+        "multiplier": "2",
+        "retries": "5",
+        "auth": "none",
+        "tlsselfsign": false,
+        "tlscacert": "",
+        "tlsclientcert": "",
+        "tlsprivatekey": "",
+        "tlspassphrase": "",
+        "saslssl": true,
+        "saslmechanism": "plain",
+        "loglevel": "error"
+    },
+    {
+        "id": "92be77f1c0ef3169",
+        "type": "ui_group",
+        "name": "Top10 noisiest",
+        "tab": "a9905ff66c12ecae",
+        "order": 2,
+        "disp": true,
+        "width": "12",
+        "collapse": true,
+        "className": ""
+    },
+    {
+        "id": "a9905ff66c12ecae",
+        "type": "ui_tab",
+        "name": "MainTab",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    }
+]
