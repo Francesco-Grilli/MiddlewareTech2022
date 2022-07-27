@@ -15,9 +15,7 @@ import static org.apache.spark.sql.functions.*;
 
 public class DataAnalysis {
 
-    // TODO: Serious testing of top-10 query, developed on the basis of 5-min averages; test on hours
     // TODO: Test watermarks, try sending late data
-
     // TODO: check semantics: can we guarantee EOS? (spark guarantees writing on kafka with ALOS)
 
     public static void main(String[] args) throws TimeoutException {
