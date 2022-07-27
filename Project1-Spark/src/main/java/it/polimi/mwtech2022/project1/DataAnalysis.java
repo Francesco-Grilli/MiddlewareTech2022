@@ -15,19 +15,10 @@ import static org.apache.spark.sql.functions.*;
 
 public class DataAnalysis {
 
-    // TODO: Serious testing on actual times (hours, days, weeks); should work for average is the same used for 5-min
     // TODO: Serious testing of top-10 query, developed on the basis of 5-min averages; test on hours
     // TODO: Test watermarks, try sending late data
-    // TODO: Redirect top10 query to a kafka topic
 
-    // TODO: watermark on result tables (but likely not only)
-    // TODO: check watermarks, on window.start or window.end?
-    // TODO: timestamp for kafka?
     // TODO: check semantics: can we guarantee EOS? (spark guarantees writing on kafka with ALOS)
-    // TODO: Threshold-query on kafka --> timestamp, log compaction, a consumer that reads messages and updates a list
-    // TODO: other solution for threshold-query on kafka: simple consumer that reads all messages on the threshold topic and updates a list
-    // TODO: top-10 query: group by hour and extract most recent hour, filter input on that hour, sort desc, limit 10 (append)
-    // TODO: adapt queries to keep also ending of the sliding window
 
     public static void main(String[] args) throws TimeoutException {
 
@@ -102,10 +93,10 @@ public class DataAnalysis {
                 .toDF("POI", "Noise", "Timestamp", "TSLong");
 
         final Dataset<Row> fiveMinuteAvg = poiNoise
-                .withWatermark("Timestamp", "10 seconds")
+                .withWatermark("Timestamp", "2 minutes")
                 //decibel to linear conversion: 10^(value/10)
                 .withColumn("Noise-linear", pow(10, col("Noise").divide(10)))
-                .groupBy(window(col("Timestamp"), "1 minutes", "1 minutes"),
+                .groupBy(window(col("Timestamp"), "5 minutes", "5 minutes"),
                         col("POI")) // assuming unique POINames
                 //average on linear values
                 .avg("Noise-linear")
@@ -203,7 +194,8 @@ public class DataAnalysis {
                 .option("checkpointLocation", settings.getCheckpointLocation() + "/dayQuery")
                 .option("kafka.bootstrap.servers", settings.getKafkaServer())
                 .option("topic", settings.getDayTopic())
-                .trigger(Trigger.ProcessingTime("5 minutes")) //periodic query: query computation every /*processing time*/
+                .trigger(Trigger.ProcessingTime("1 minute"))
+                //most likely will not start every minute because most of the time there won't be any new data from the input
                 .start();
 
         /*----------------------------------------------/
@@ -215,16 +207,17 @@ public class DataAnalysis {
                 .readStream()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", settings.getKafkaServer())
-                .option("subscribe", "nodered-day")
+                .option("subscribe", settings.getDayTopic())
                 .load()
                 .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
                 .as(Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
                 .map(inputToRow, Encoders.tuple(Encoders.STRING(), Encoders.DOUBLE(), Encoders.TIMESTAMP(), Encoders.LONG()))
                 .toDF("POI", "Noise", "Timestamp", "TSLong");
 
-        final StreamingQuery weekQuery = hourInput
+        final StreamingQuery weekQuery = dayInput
                 // actual query
                 .withWatermark("Timestamp", "1 hour")
+                .filter(col("TSLong").mod(1000 * 60 * 60 * 24).equalTo(0))
                 .withColumn("Noise-linear", pow(10, col("Noise").divide(10)))
                 .groupBy(window(col("Timestamp"), "7 days", "1 day"),
                         col("POI")) // assuming unique POINames
@@ -240,7 +233,7 @@ public class DataAnalysis {
                 .option("checkpointLocation", settings.getCheckpointLocation() + "/weekQuery")
                 .option("kafka.bootstrap.servers", settings.getKafkaServer())
                 .option("topic", settings.getWeekTopic())
-                .trigger(Trigger.ProcessingTime("1 hour")) //periodic query: query computation every /*processing time*/
+                .trigger(Trigger.ProcessingTime("1 minute")) //same as day query
                 .start();
 
         /*----------------------------------------------/
@@ -276,15 +269,15 @@ public class DataAnalysis {
                 .join(lastHourBatch, expr("TSLong = LastHour"))
                 .sort(desc("TSLong"), desc("Noise"))
                 .limit(10)
-//                .select("POI", "Noise", "Timestamp")
-//                .map(rowToOutput, Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
-//                .toDF("key", "value")
+                .select("POI", "Noise", "Timestamp")
+                .map(rowToOutput, Encoders.tuple(Encoders.STRING(), Encoders.STRING()))
+                .toDF("key", "value")
                 .writeStream()
-                .format("console")
+                .format("kafka")
                 .outputMode("complete")
-                .option("checkpointLocation", settings.getCheckpointLocation() + "/lastHourValues1")
-//                .option("kafka.bootstrap.servers", settings.getKafkaServer())
-//                .option("topic", settings.getHourTopic())
+                .option("checkpointLocation", settings.getCheckpointLocation() + "/top10Query")
+                .option("kafka.bootstrap.servers", settings.getKafkaServer())
+                .option("topic", settings.getTop10Topic())
                 .trigger(Trigger.ProcessingTime("15 seconds")) //periodic query: query computation every /*processing time*/
                 .start();
 
@@ -351,7 +344,7 @@ public class DataAnalysis {
                 .writeStream()
                 .format("kafka")
                 .outputMode("update")
-                .option("checkpointLocation", settings.getCheckpointLocation() + "/lastOverThresholdQuery5")
+                .option("checkpointLocation", settings.getCheckpointLocation() + "/lastOverThresholdQuery")
                 .option("kafka.bootstrap.servers", settings.getKafkaServer())
                 .option("topic", settings.getLastThresholdTopic())
                 .trigger(Trigger.ProcessingTime("30 seconds")) //periodic query: query computation every /*processing time*/
