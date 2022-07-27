@@ -40,8 +40,8 @@ int main(int argc, char* argv[]) {
 	parameters.movingSpeedCar = argc > 9 ? atof(argv[10]) : 14.0;
 	parameters.timeStep = argc > 10 ? atof(argv[11]) : 10;
 	parameters.granularity = argc > 11 ? atoi(argv[12]) : 10;
-	parameters.latitude = argc > 12 ? atoi(argv[13]) : 45.464203;
-	parameters.longitude = argc > 13 ? atoi(argv[14]) : 9.189982;
+	parameters.latitude = argc > 12 ? atof(argv[13]) : 45.464203;
+	parameters.longitude = argc > 13 ? atof(argv[14]) : 9.189982;
 	parameters.rank = rank;
 	parameters.size = size;
 

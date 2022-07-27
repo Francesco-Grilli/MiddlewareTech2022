@@ -1,18 +1,18 @@
 [
     {
-        "id": "76e8f673b15b6012",
+        "id": "e5ba676816adcdd0",
         "type": "tab",
-        "label": "POI-Generate-Data (mw project)",
+        "label": "POI-Generate-Data",
         "disabled": false,
         "info": "",
         "env": []
     },
     {
-        "id": "5ec53cf1fed67dc9",
+        "id": "50dd3aed9dcc3133",
         "type": "function",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "",
-        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    POI = getNearestPOI(msg.info.x, msg.info.y);\n\n    noises = getNoises(msg.info.noise, 100);\n\n    //send multiple noise messages in case an array\n    //of noises is received\n    for (let i = 0; i<noises.length; i++){\n        let message = {};\n        message.key = POI.Name;\n        message.timestamp = msg.info.timestamp.toString();\n        //asynchronous send otherwise kafka producer\n        //receives only the first one\n        message.payload = noises[i].toString() + \",\" + message.timestamp;\n        node.send(message);\n    }\n    \n    return null;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\nfunction getNoises(noises, k){\n    \n    n = [];\n    sum =0;\n    count = noises.length;\n    \n    noises.forEach(e => sum+=e);\n    if((sum/count)>k){\n        return noises;\n    }\n    else{\n        n.push(sum/count);\n        return n;\n    }\n    \n}\n\n",
+        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    POI = getNearestPOI(msg.payload.x, msg.payload.y);\n\n    noises = getNoises(msg.payload.noise, 100);\n\n    //send multiple noise messages in case an array\n    //of noises is received\n    for (let i = 0; i<noises.length; i++){\n        let message = {};\n        message.x = msg.payload.x;\n        message.y = msg.payload.y;\n        message.key = POI.Name;\n        message.timestamp = msg.timestamp.toString();\n        //asynchronous send otherwise kafka producer\n        //receives only the first one\n        message.payload = noises[i].toString() + \",\" + message.timestamp;\n        node.send(message);\n    }\n    \n    return null;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\nfunction getNoises(noises, k){\n    \n    n = [];\n    sum =0;\n    count = noises.length;\n    \n    noises.forEach(e => sum+=e);\n    if((sum/count)>k){\n        return noises;\n    }\n    else{\n        n.push(sum/count);\n        return n;\n    }\n    \n}\n\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -22,14 +22,14 @@
         "y": 280,
         "wires": [
             [
-                "015227b9ae85543a"
+                "182cb7d3fdae3c69"
             ]
         ]
     },
     {
-        "id": "f9fff4d22425991b",
+        "id": "616704693c60b333",
         "type": "csv",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "",
         "sep": ",",
         "hdrin": true,
@@ -45,14 +45,14 @@
         "y": 360,
         "wires": [
             [
-                "5ec53cf1fed67dc9"
+                "50dd3aed9dcc3133"
             ]
         ]
     },
     {
-        "id": "92882f260e317ebc",
+        "id": "4196f9b94bfbb20b",
         "type": "inject",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "",
         "props": [
             {
@@ -74,16 +74,16 @@
         "y": 340,
         "wires": [
             [
-                "2939c1bb82678d78"
+                "450282114f18b311"
             ]
         ]
     },
     {
-        "id": "2939c1bb82678d78",
+        "id": "450282114f18b311",
         "type": "file in",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "POI-File",
-        "filename": "C:\\Users\\PC\\IdeaProjects\\MiddlewareTech2022\\Project1-Node-Red\\POI.txt",
+        "filename": "C:\\Users\\gibel\\IdeaProjects\\MiddlewareTech2022\\Project1-Node-Red\\POI.txt",
         "format": "utf8",
         "chunk": false,
         "sendError": false,
@@ -93,33 +93,33 @@
         "y": 420,
         "wires": [
             [
-                "f9fff4d22425991b"
+                "616704693c60b333"
             ]
         ]
     },
     {
-        "id": "08d7d0c395716fc1",
+        "id": "45cd5662ef16f4fd",
         "type": "function",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "",
-        "func": "\nnoises = [];\n\nfor(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n}\n\nm = {\n    topic : \"POI\",\n    info : {\n        x:  Math.random()*10000 - 5000,\n        y:  Math.random()*10000 - 5000,\n        noise:  noises,\n        timestamp:  Date.now()\n    }\n};\nreturn m;",
+        "func": "noises = [];\n\nfor(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n}\n\nm = {\n    topic : \"POI\",\n    payload : {\n        x:  41.87 + Math.random()*0.04,\n        y:  12.46 + Math.random()*0.04,\n        noise:  noises,\n    },\n    timestamp:  Date.now()\n};\nreturn m;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 360,
-        "y": 180,
+        "x": 380,
+        "y": 260,
         "wires": [
             [
-                "5ec53cf1fed67dc9"
+                "50dd3aed9dcc3133"
             ]
         ]
     },
     {
-        "id": "6c2ffe323c817da6",
+        "id": "dd02ba46497421ce",
         "type": "inject",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "",
         "props": [
             {
@@ -135,19 +135,20 @@
         "once": false,
         "onceDelay": "1",
         "topic": "",
+        "payload": "",
         "payloadType": "date",
-        "x": 140,
-        "y": 180,
+        "x": 160,
+        "y": 220,
         "wires": [
             [
-                "08d7d0c395716fc1"
+                "45cd5662ef16f4fd"
             ]
         ]
     },
     {
-        "id": "cafd347715dfc45e",
+        "id": "0bed2cdf12581746",
         "type": "debug",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "",
         "active": true,
         "tosidebar": true,
@@ -157,14 +158,14 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 870,
+        "x": 890,
         "y": 640,
         "wires": []
     },
     {
-        "id": "f79965bf600d4ad0",
+        "id": "123edeeb386369a2",
         "type": "function",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "Select message attributes",
         "func": "kafkaObject = msg.payload;\nsplitPayload = kafkaObject.value.split(\",\");\ntimestamp = new Date(Number(splitPayload[1]));\n\ncleanMsg = {\n    topic : msg.topic,\n    key : kafkaObject.key,\n    timestamp : timestamp.toLocaleString(),\n    value : splitPayload[0],\n}\n\nreturn cleanMsg;",
         "outputs": 1,
@@ -176,14 +177,14 @@
         "y": 520,
         "wires": [
             [
-                "e6e31b1db4fad0a1"
+                "cc988fd83ba76952"
             ]
         ]
     },
     {
-        "id": "e6e31b1db4fad0a1",
+        "id": "cc988fd83ba76952",
         "type": "function",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "Convert for csv",
         "func": "let pld = msg.key + \",\";\npld = pld + msg.timestamp + \",\";\npld = pld + msg.value;\n\n// if (payload.avgNoise){\n//     payload.noise = payload.avgNoise;\n// }\n// newPayload = payload.POIName;\n// ts = new Date(payload.timestamp);\n// newPayload = newPayload + \",\" + ts.toUTCString();\n// for (let i = 0; i < payload.noise.length; i++){\n//     newPayload = newPayload + \",\" + payload.noise[i];\n// }\n\nnewMsg = {\n    payload : pld\n}\n\nreturn newMsg;",
         "outputs": 1,
@@ -195,14 +196,14 @@
         "y": 580,
         "wires": [
             [
-                "6c49c55d8458faae"
+                "7528268e7d0a6c88"
             ]
         ]
     },
     {
-        "id": "6c49c55d8458faae",
+        "id": "7528268e7d0a6c88",
         "type": "file",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "Write input to csv",
         "filename": "C:\\tmp\\input.csv",
         "appendNewline": true,
@@ -216,9 +217,9 @@
         ]
     },
     {
-        "id": "d7aa0bae1ce34d0b",
+        "id": "a2c4fd7c68509559",
         "type": "function",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "",
         "func": "payload = JSON.parse(msg.payload);\nnewPayload = msg._kafka.key;\nts = new Date(payload.timestamp);\nnewPayload = newPayload + \",\" + ts.toUTCString();\nnewPayload = newPayload + \",\" + payload.avgNoise;\n\n\nnewMsg = {\n    payload : newPayload\n}\n\nreturn newMsg;",
         "outputs": 1,
@@ -230,14 +231,14 @@
         "y": 740,
         "wires": [
             [
-                "c6a7ae7275828aa7"
+                "9e9ced8385b03f6e"
             ]
         ]
     },
     {
-        "id": "c6a7ae7275828aa7",
+        "id": "9e9ced8385b03f6e",
         "type": "file",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "Write input to csv",
         "filename": "C:\\tmp\\2minslide1.csv",
         "appendNewline": true,
@@ -251,11 +252,30 @@
         ]
     },
     {
-        "id": "dc4be35bfc8c3f00",
+        "id": "561deb6db218b754",
+        "type": "function",
+        "z": "e5ba676816adcdd0",
+        "name": "Select message attributes",
+        "func": "kafkaObject = msg.payload;\nsplitPayload = kafkaObject.value.split(\",\");\ntimestamp = new Date(Number(splitPayload[1]));\n\ncleanMsg = {\n    topic : msg.topic,\n    poi : kafkaObject.key,\n    timestamp : timestamp.toLocaleString(),\n    value : splitPayload[0],\n}\n\nreturn cleanMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 640,
+        "wires": [
+            [
+                "0bed2cdf12581746"
+            ]
+        ]
+    },
+    {
+        "id": "661e8e509bb97151",
         "type": "kafkajs-consumer",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "KafkaJS Input Consumer",
-        "client": "9e09ad31afc63b92",
+        "client": "ddca50d356b3a3e7",
         "groupid": "",
         "topic": "nodered-input",
         "advancedoptions": true,
@@ -276,16 +296,16 @@
         "y": 520,
         "wires": [
             [
-                "f79965bf600d4ad0"
+                "123edeeb386369a2"
             ]
         ]
     },
     {
-        "id": "bb443e1771990176",
+        "id": "f0cfd62e795253c5",
         "type": "kafkajs-consumer",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "KafkaJS Input Consumer",
-        "client": "9e09ad31afc63b92",
+        "client": "ddca50d356b3a3e7",
         "groupid": "",
         "topic": "test-fiveMin",
         "advancedoptions": true,
@@ -306,35 +326,16 @@
         "y": 640,
         "wires": [
             [
-                "58a973f7681497c6"
+                "561deb6db218b754"
             ]
         ]
     },
     {
-        "id": "58a973f7681497c6",
-        "type": "function",
-        "z": "76e8f673b15b6012",
-        "name": "Select message attributes",
-        "func": "kafkaObject = msg.payload;\nsplitPayload = kafkaObject.value.split(\",\");\ntimestamp = new Date(Number(splitPayload[1]));\n\ncleanMsg = {\n    topic : msg.topic,\n    poi : kafkaObject.key,\n    timestamp : timestamp.toLocaleString(),\n    value : splitPayload[0],\n}\n\nreturn cleanMsg;",
-        "outputs": 1,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 650,
-        "y": 640,
-        "wires": [
-            [
-                "cafd347715dfc45e"
-            ]
-        ]
-    },
-    {
-        "id": "015227b9ae85543a",
+        "id": "5096fb816ad92345",
         "type": "kafkajs-producer",
-        "z": "76e8f673b15b6012",
+        "z": "e5ba676816adcdd0",
         "name": "KafkaJS Input Producer",
-        "client": "9e09ad31afc63b92",
+        "client": "ddca50d356b3a3e7",
         "topic": "nodered-input",
         "advancedoptions": true,
         "acknowledge": "all",
@@ -350,7 +351,64 @@
         "wires": []
     },
     {
-        "id": "9e09ad31afc63b92",
+        "id": "c159cb74bc37f656",
+        "type": "mqtt in",
+        "z": "e5ba676816adcdd0",
+        "name": "MQTT MPI simulation",
+        "topic": "testproject12345",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "1425cd6007df2372",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 160,
+        "y": 120,
+        "wires": [
+            [
+                "277148a447b143f8"
+            ]
+        ]
+    },
+    {
+        "id": "277148a447b143f8",
+        "type": "function",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "func": "msg.topic = 'POI';\nmsg.timestamp = msg.payload.timestamp;\nreturn  msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 180,
+        "wires": [
+            [
+                "50dd3aed9dcc3133"
+            ]
+        ]
+    },
+    {
+        "id": "182cb7d3fdae3c69",
+        "type": "debug",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 630,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "ddca50d356b3a3e7",
         "type": "kafkajs-client",
         "name": "Test Client",
         "brokers": "127.0.0.1:9092",
@@ -372,5 +430,31 @@
         "saslssl": true,
         "saslmechanism": "plain",
         "loglevel": "error"
+    },
+    {
+        "id": "1425cd6007df2372",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mqtt.neslab.it",
+        "port": "3200",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
     }
 ]

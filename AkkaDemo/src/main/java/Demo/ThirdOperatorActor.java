@@ -24,7 +24,7 @@ public class ThirdOperatorActor extends OperatorActor{
         }
         std=std/this.myWindow.size();
         std = Math.sqrt(std);
-        return new DataMessage("Temperature", std);
+        return new DataMessage("Amperature", std);
 
     }
 

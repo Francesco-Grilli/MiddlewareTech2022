@@ -18,7 +18,13 @@ public class SecondOperatorActor extends OperatorActor{
             return Double.compare(a.getData().second(), b.getData().second());
         });
 
-        return message.orElseGet(() -> new DataMessage("Temperature", -2.0));
+        if(message.isPresent()){
+            message.get().setData("Bemperature", message.get().getData().second());
+            return message.get();
+        }
+        else{
+            return new DataMessage("Bemperature", -2.0);
+        }
 
     }
 
