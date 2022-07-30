@@ -3,6 +3,7 @@ package Demo;
 import akka.actor.Props;
 
 import java.util.OptionalDouble;
+import java.util.Random;
 
 public class FirstOperatorActor extends OperatorActor{
 
@@ -17,11 +18,17 @@ public class FirstOperatorActor extends OperatorActor{
 
         value = this.myWindow.stream().mapToDouble((a) -> a.getData().second()).average();
 
+        Random r = new Random();
+        int a = (int) 'a';
+        int z = (int) 'z';
+        char c = (char) (r.nextInt()*z+a);
+
+
         if(value.isPresent()) {
-            return new DataMessage("Tmperature", value.getAsDouble());
+            return new DataMessage(String.valueOf(c), value.getAsDouble());
         }
         else{
-            return new DataMessage("Tmperature", -1.0);
+            return new DataMessage(String.valueOf(c), -1.0);
         }
     }
 

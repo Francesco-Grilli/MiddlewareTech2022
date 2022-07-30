@@ -2,6 +2,8 @@ package Demo;
 
 import akka.actor.Props;
 
+import java.util.Random;
+
 public class ThirdOperatorActor extends OperatorActor{
 
 
@@ -24,7 +26,13 @@ public class ThirdOperatorActor extends OperatorActor{
         }
         std=std/this.myWindow.size();
         std = Math.sqrt(std);
-        return new DataMessage("Amperature", std);
+
+        Random r = new Random();
+        int a = (int) 'a';
+        int z = (int) 'z';
+        char c = (char) (r.nextInt()*z+a);
+
+        return new DataMessage(String.valueOf(c), std);
 
     }
 

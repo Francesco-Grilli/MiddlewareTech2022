@@ -44,6 +44,7 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
                 .match(DeleteMessagesSuccess.class, System.out::println)
                 .match(ErrorMessage.class, (m) -> {throw new Exception("Error message arrived");})
                 .match(ConfirmMessage.class, this::confirmMessage)
+                .matchAny(System.out::println)
                 .build();
     }
 

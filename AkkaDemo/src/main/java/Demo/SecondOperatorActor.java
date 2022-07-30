@@ -3,6 +3,7 @@ package Demo;
 import akka.actor.Props;
 
 import java.util.Optional;
+import java.util.Random;
 
 public class SecondOperatorActor extends OperatorActor{
 
@@ -18,12 +19,18 @@ public class SecondOperatorActor extends OperatorActor{
             return Double.compare(a.getData().second(), b.getData().second());
         });
 
+
+        Random r = new Random();
+        int a = (int) 'a';
+        int z = (int) 'z';
+        char c = (char) (r.nextInt()*z+a);
+
         if(message.isPresent()){
-            message.get().setData("Bemperature", message.get().getData().second());
+            message.get().setData(String.valueOf(c), message.get().getData().second());
             return message.get();
         }
         else{
-            return new DataMessage("Bemperature", -2.0);
+            return new DataMessage(String.valueOf(c), -2.0);
         }
 
     }

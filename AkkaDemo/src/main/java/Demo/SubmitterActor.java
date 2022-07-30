@@ -63,7 +63,7 @@ public class SubmitterActor extends AbstractActor {
 
         System.out.println("OK 3");
 
-        Thread.sleep(1000*30);
+        Thread.sleep(1000*10);
 
     }
 
@@ -78,11 +78,26 @@ public class SubmitterActor extends AbstractActor {
         return Props.create(SubmitterActor.class);
     }
 
-    private void runTest(){
+    private void runTest() throws InterruptedException {
 
         Random rand = new Random();
 
         for(int i=0; i<100; i++) {
+            supervisor1.tell(new DataMessage("Temperature", rand.nextDouble()*29+1), getSelf());
+        }
+
+        Thread.sleep(1000*3);
+
+        supervisor2.tell(new ErrorMessage(), getSelf());
+
+        for(int i=0; i<20; i++) {
+            supervisor1.tell(new DataMessage("Temperature", rand.nextDouble()*29+1), getSelf());
+        }
+
+        supervisor2.tell(new ErrorMessage(), getSelf());
+        supervisor2.tell(new ErrorMessage(), getSelf());
+
+        for(int i=0; i<20; i++) {
             supervisor1.tell(new DataMessage("Temperature", rand.nextDouble()*29+1), getSelf());
         }
 
