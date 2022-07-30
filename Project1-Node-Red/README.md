@@ -29,6 +29,8 @@ them the computed averages and the input messages.
 it, click on any of the Kafka nodes which are present in the flows, then
 click on the pencil icon beside client dropdown menu; then change the 
 broker's address to match the one you want to refer to.
+- In case they are disabled, enable the Kafka Producer node and the MQTT
+receiver node.
 
 We strongly advise not to change any topic name, unless strictly necessary:
 in order to let the project work correctly, then, it would be necessary
