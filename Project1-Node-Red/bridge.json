@@ -11,18 +11,19 @@
         "id": "50dd3aed9dcc3133",
         "type": "function",
         "z": "e5ba676816adcdd0",
-        "name": "",
-        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    POI = getNearestPOI(msg.payload.x, msg.payload.y);\n\n    noises = getNoises(msg.payload.noise, 100);\n\n    //send multiple noise messages in case an array\n    //of noises is received\n    for (let i = 0; i<noises.length; i++){\n        let message = {};\n        message.x = msg.payload.x;\n        message.y = msg.payload.y;\n        message.key = POI.Name;\n        message.timestamp = msg.timestamp.toString();\n        message.timestampString = (new Date(Number(msg.timestamp))).toLocaleString(),\n        //asynchronous send otherwise kafka producer\n        //receives only the first one\n        message.payload = noises[i].toString() + \",\" + message.timestamp;\n        node.send(message);\n    }\n    \n    return null;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\nfunction getNoises(noises, k){\n    \n    n = [];\n    sum =0;\n    count = noises.length;\n    \n    noises.forEach(e => sum+=e);\n    if((sum/count)>k){\n        return noises;\n    }\n    else{\n        n.push(sum/count);\n        return n;\n    }\n    \n}\n\n",
+        "name": "Cleaning and Enrichment",
+        "func": "POI = context.get(\"POI\");\n\nif(msg.topic == \"POI\"){\n    noises = msg.payload.noise;\n    //cleaning section (missing noises or timestamp)\n    if(!noises || noises.length==0) return null;\n    if(!msg.timestamp) return null;\n    //cleaning section (values of latitude and longitude)\n    if (msg.payload.lat > 90 || msg.payload.lat < -90) return null;\n    if (msg.payload.lon > 180 || msg.payload.lon < -180) return null;\n    //obtain values to build actual message\n    poiAndDistance = getNearestPoiAndDistance(msg.payload.lat, msg.payload.lon);\n    POI = poiAndDistance[0];\n    distance = poiAndDistance[1];\n    //cleaning section (distance from closest POI)\n    //500m was reckoned a legitimate value given the POIs in the file\n    if (distance > 500) return null;\n    //send multiple noise messages in case an array\n    //of noises is received\n    for (let i = 0; i<noises.length; i++){\n        let message = {};\n        //cleaning section (negative noise or timestamp)\n        if (noises[i] < 0) continue;\n        if (msg.timestamp < 0) continue;\n        message.lat = msg.payload.lat;\n        message.lon = msg.payload.lon;\n        message.key = POI.Name;\n        message.distance = distance;\n        message.PoiLat = POI.lat;\n        message.PoiLon = POI.lon;\n        message.timestamp = msg.timestamp.toString();\n        message.timestampString = (new Date(Number(msg.timestamp))).toLocaleString(),\n        //asynchronous send otherwise kafka producer\n        //receives only the first one\n        message.payload = noises[i].toString() + \",\" + message.timestamp;\n        node.send(message);\n    }\n}\nelse{\n    setMatrix();\n}\n\n//initializes matrix of points of interest\nfunction setMatrix(){\n    context.set(\"POI\", msg.payload);\n}\n\n//returns nearest point of interest and distance from it\n//given the point coordinates (lat, lon)\nfunction getNearestPoiAndDistance(lat, lon){\n    //initialize POI as the first one and compute distance from it\n    d = computeDistance(lat, lon, POI[0]);\n    p = POI[0];\n    //for each POI compute distance and update p \n    //if d1 is lower than current distance from closest \n    //start from POI[1] because 0 has already been considered\n    for(j=1; j<POI.length; j++){\n        console.log(POI[j].Name);\n        d1 = computeDistance(lat, lon, POI[j]);\n        if(d1<d){\n            d = d1;\n            p = POI[j];\n        }\n    }\n    //return both POI and distance because needed for cleaning\n    return [p,d];\n    \n}\n\n//compute distance in meters from a given point of interest\nfunction computeDistance(lat, lon, poi){\n    return haversine(lat, lon, poi.lat, poi.lon);\n}\n\n/*---------------------------------------------\n    MATH SECTION: COMPUTE DISTANCE BETWEEN\n    TWO POINTS, GIVEN LATITUDE AND LONGITUDE\n-----------------------------------------------*/\n\n//returns distance in meters between two points given \n//latitude and longitude, computing haversine function\n//info about haversine: https://community.esri.com/t5/coordinate-reference-systems-blog/distance-on-a-sphere-the-haversine-formula/ba-p/902128\nfunction haversine(lat1, lon1, lat2, lon2){\n    R = 6371000;  // radius of Earth in meters\n    //convert latitudes to radians\n    phi1 = degToRad(lat1);\n    console.log(\"Phi1: \" + phi1);\n    phi2 = degToRad(lat2);\n    console.log(\"Phi2: \" + phi2);\n    //compute differences in latitudes and longitudes\n    deltaPhi = degToRad(lat2 - lat1);\n    deltaLambda = degToRad(lon2 - lon1);\n    console.log(\"deltaPhi: \" + deltaPhi);\n    console.log(\"deltaLambda: \" + deltaLambda);\n    //actual computation of haversine\n    a = Math.sin(deltaPhi / 2.0) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2.0) ** 2;\n    c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));\n    meters = R * c;  // output distance in meters\n    console.log(\"a: \" + a);\n    console.log(\"c: \" + c);\n    console.log(\"Meters: \" + meters);\n    km = meters / 1000.0  // output distance in kilometers\n    console.log(\"Kilometers: \" + km);\n    console.log(\"----------------------------------------\")\n    return meters;\n}\n\nfunction degToRad(angle){\n    while(angle > 360) angle -= 360;\n    while(angle < -360) angle += 360;\n    return angle * (Math.PI / 180);\n}\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 580,
+        "x": 630,
         "y": 280,
         "wires": [
             [
-                "5096fb816ad92345"
+                "5096fb816ad92345",
+                "452fd788dd354730"
             ]
         ]
     },
@@ -102,7 +103,7 @@
         "type": "function",
         "z": "e5ba676816adcdd0",
         "name": "Generate Rome data",
-        "func": "noises = [];\n\nfor(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n}\n\nm = {\n    topic : \"POI\",\n    payload : {\n        x:  41.87 + Math.random()*0.04,\n        y:  12.46 + Math.random()*0.04,\n        noise:  noises,\n    },\n    timestamp:  Date.now()\n};\nreturn m;",
+        "func": "//set threshold\nif(!context.threshold) context.threshold = 100; \n//create array for noises\nnoises = [];\n//always generate 6 noise measurements\nfor(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n}\n//create message\nm = {\n    topic : \"POI\",\n    payload : {\n        lat:  41.875 + Math.random()*0.035,\n        lon:  12.466 + Math.random()*0.037,\n        noise:  noises, //set noises to be the 6 measurements or their average\n    },\n    timestamp:  Date.now()\n};\nreturn m;\n\n//receives as input the array of 6 measurements and computes the average\n//returns the average if it is under a threshold, the array itself otherwise\nfunction getNoisesOrAverage(noises){\n    //create return array\n    n = [];\n    //initialize sum and count for average\n    sum = 0;\n    count = noises.length;\n    //sum all noises\n    noises.forEach(e => sum += e);\n    //compute average\n    avg = sum / count;\n    //return results\n    if(avg>context.threshold){\n        return noises;\n    }\n    else{\n        n.push(avg);\n        return n;\n    }\n}",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -149,6 +150,7 @@
         "id": "5096fb816ad92345",
         "type": "kafkajs-producer",
         "z": "e5ba676816adcdd0",
+        "d": true,
         "name": "KafkaJS Input Producer",
         "client": "ddca50d356b3a3e7",
         "topic": "input",
@@ -161,8 +163,8 @@
         "transactiontimeout": 60000,
         "metadatamaxage": 300000,
         "allowautotopiccreation": true,
-        "x": 820,
-        "y": 280,
+        "x": 830,
+        "y": 360,
         "wires": []
     },
     {
@@ -219,12 +221,29 @@
         "finalize": "",
         "libs": [],
         "x": 340,
-        "y": 320,
+        "y": 300,
         "wires": [
             [
                 "50dd3aed9dcc3133"
             ]
         ]
+    },
+    {
+        "id": "452fd788dd354730",
+        "type": "debug",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 810,
+        "y": 220,
+        "wires": []
     },
     {
         "id": "8cb2e989d87c5557",
@@ -249,7 +268,7 @@
         "payload": "",
         "payloadType": "date",
         "x": 100,
-        "y": 300,
+        "y": 280,
         "wires": [
             [
                 "774b264e7e852a9a"
@@ -257,8 +276,57 @@
         ]
     },
     {
+        "id": "303a6d86d10848ba",
+        "type": "inject",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "2",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 320,
+        "wires": [
+            [
+                "e84b59a816ed20e5"
+            ]
+        ]
+    },
+    {
+        "id": "e84b59a816ed20e5",
+        "type": "function",
+        "z": "e5ba676816adcdd0",
+        "name": "Fake data generator",
+        "func": "//create array for noises\nnoises = [125.564792426];\n//fabricate message\nm = {\n    topic : \"POI\",\n    payload : {\n        lat:  41.894,\n        lon:  12.453,\n        noise:  noises\n    },\n    timestamp:  Date.now()\n};\nreturn m;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 340,
+        "wires": [
+            [
+                "50dd3aed9dcc3133"
+            ]
+        ]
+    },
+    {
         "id": "ddca50d356b3a3e7",
         "type": "kafkajs-client",
+        "d": true,
         "name": "Test Client",
         "brokers": "127.0.0.1:9092",
         "clientid": "384",

@@ -1,4 +1,4 @@
-Region,Name,x,y
+Region,Name,lat,lon
 Lazio,Colosseo,41.890266,12.492258
 Lazio,Altare della Pace,41.895229,12.482793
 Lazio,Pantheon,41.899269,12.476728
