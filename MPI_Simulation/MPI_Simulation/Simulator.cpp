@@ -94,7 +94,7 @@ void Simulator::closeMosquitto()
 *	- x and y are the position of the data/noise in latitude and longitude coordinates
 *	-noise is the value of noise in decibel of the simulated position
 */
-void Simulator::sendDataMosquitto(double x, double y, double noise)
+void Simulator::sendDataMosquitto(double latitude, double longitude, double noise)
 {
 
 
@@ -105,7 +105,7 @@ void Simulator::sendDataMosquitto(double x, double y, double noise)
 
 	std::stringstream message;
 	
-	message <<std::setprecision(10) << "{\"x\" : " << x << ", \"y\" : " << y << ", \"noise\" : [" << noise << "], \"timestamp\" : " << ms << "}";
+	message <<std::setprecision(10) << "{\"lat\" : " << latitude << ", \"lon\" : " << longitude << ", \"noise\" : [" << noise << "], \"timestamp\" : " << ms << "}";
 
 	std::string s = message.str();
 
