@@ -31,6 +31,8 @@ public class Settings {
     @Getter
     private String weekTopic;
     @Getter
+    private String top10Topic;
+    @Getter
     private double threshold;
     @Getter
     private int shufflePartitions;
@@ -60,6 +62,7 @@ public class Settings {
             hourTopic = object.get("hour-topic").getAsString();
             dayTopic = object.get("day-topic").getAsString();
             weekTopic = object.get("week-topic").getAsString();
+            top10Topic =object.get("top-10-topic").getAsString();
             shufflePartitions = object.get("shuffle.partitions").getAsInt();
         } catch (Exception e) {
             System.err.println("An accidental error occurred while importing settings");

@@ -1,0 +1,309 @@
+[
+    {
+        "id": "e5ba676816adcdd0",
+        "type": "tab",
+        "label": "Bridge section",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "50dd3aed9dcc3133",
+        "type": "function",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "func": "POI = context.get(\"POI\");\n\nif(msg.topic==\"POI\"){\n    POI = getNearestPOI(msg.payload.x, msg.payload.y);\n\n    noises = getNoises(msg.payload.noise, 100);\n\n    //send multiple noise messages in case an array\n    //of noises is received\n    for (let i = 0; i<noises.length; i++){\n        let message = {};\n        message.x = msg.payload.x;\n        message.y = msg.payload.y;\n        message.key = POI.Name;\n        message.timestamp = msg.timestamp.toString();\n        message.timestampString = (new Date(Number(msg.timestamp))).toLocaleString(),\n        //asynchronous send otherwise kafka producer\n        //receives only the first one\n        message.payload = noises[i].toString() + \",\" + message.timestamp;\n        node.send(message);\n    }\n    \n    return null;\n    \n}\nelse{\n    setMatrix();\n}\n\nfunction setMatrix(){\n    \n    context.set(\"POI\", msg.payload);\n    \n}\n\nfunction getNearestPOI(x, y){\n    \n    d = distance(x, y, POI[0]);\n    p = POI[0];\n    for(c=0; c<POI.length; c++){\n        d1 = distance(x, y, POI[c])\n        if(d1<d){\n            d = d1;\n            p = POI[c];\n        }\n    }\n    \n    return p;\n    \n}\n\nfunction distance(x, y, p){\n    return Math.sqrt(Math.pow(x - p.x, 2) + Math.pow(y - p.y, 2))\n}\n\nfunction getNoises(noises, k){\n    \n    n = [];\n    sum =0;\n    count = noises.length;\n    \n    noises.forEach(e => sum+=e);\n    if((sum/count)>k){\n        return noises;\n    }\n    else{\n        n.push(sum/count);\n        return n;\n    }\n    \n}\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 580,
+        "y": 280,
+        "wires": [
+            [
+                "5096fb816ad92345"
+            ]
+        ]
+    },
+    {
+        "id": "616704693c60b333",
+        "type": "csv",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "sep": ",",
+        "hdrin": true,
+        "hdrout": "none",
+        "multi": "mult",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": true,
+        "include_empty_strings": "",
+        "include_null_values": "",
+        "x": 450,
+        "y": 420,
+        "wires": [
+            [
+                "50dd3aed9dcc3133"
+            ]
+        ]
+    },
+    {
+        "id": "4196f9b94bfbb20b",
+        "type": "inject",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.0",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 230,
+        "y": 400,
+        "wires": [
+            [
+                "450282114f18b311"
+            ]
+        ]
+    },
+    {
+        "id": "450282114f18b311",
+        "type": "file in",
+        "z": "e5ba676816adcdd0",
+        "name": "POI-File",
+        "filename": "C:\\Users\\gibel\\IdeaProjects\\MiddlewareTech2022\\Project1-Node-Red\\POI.txt",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 240,
+        "y": 480,
+        "wires": [
+            [
+                "616704693c60b333"
+            ]
+        ]
+    },
+    {
+        "id": "45cd5662ef16f4fd",
+        "type": "function",
+        "z": "e5ba676816adcdd0",
+        "name": "Generate Rome data",
+        "func": "noises = [];\n\nfor(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n}\n\nm = {\n    topic : \"POI\",\n    payload : {\n        x:  41.87 + Math.random()*0.04,\n        y:  12.46 + Math.random()*0.04,\n        noise:  noises,\n    },\n    timestamp:  Date.now()\n};\nreturn m;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 260,
+        "wires": [
+            [
+                "50dd3aed9dcc3133"
+            ]
+        ]
+    },
+    {
+        "id": "dd02ba46497421ce",
+        "type": "inject",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "2",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 120,
+        "y": 220,
+        "wires": [
+            [
+                "45cd5662ef16f4fd"
+            ]
+        ]
+    },
+    {
+        "id": "5096fb816ad92345",
+        "type": "kafkajs-producer",
+        "z": "e5ba676816adcdd0",
+        "name": "KafkaJS Input Producer",
+        "client": "ddca50d356b3a3e7",
+        "topic": "input",
+        "advancedoptions": true,
+        "acknowledge": "all",
+        "partition": "",
+        "headeritems": {},
+        "key": "",
+        "responsetimeout": 30000,
+        "transactiontimeout": 60000,
+        "metadatamaxage": 300000,
+        "allowautotopiccreation": true,
+        "x": 820,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "c159cb74bc37f656",
+        "type": "mqtt in",
+        "z": "e5ba676816adcdd0",
+        "d": true,
+        "name": "MQTT input",
+        "topic": "testproject12345",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "1425cd6007df2372",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 90,
+        "y": 120,
+        "wires": [
+            [
+                "277148a447b143f8"
+            ]
+        ]
+    },
+    {
+        "id": "277148a447b143f8",
+        "type": "function",
+        "z": "e5ba676816adcdd0",
+        "name": "",
+        "func": "msg.topic = 'POI';\nmsg.timestamp = msg.payload.timestamp;\nreturn  msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 180,
+        "wires": [
+            [
+                "50dd3aed9dcc3133"
+            ]
+        ]
+    },
+    {
+        "id": "774b264e7e852a9a",
+        "type": "function",
+        "z": "e5ba676816adcdd0",
+        "d": true,
+        "name": "Generate Rome data (days)",
+        "func": "//just for debugging\nif(!context.timestamp) context.timestamp = 21603600000;// -60*60*1000;\ncontext.timestamp += 60 * 60 * 1000;\n\n\nnoises = [];\n\n// for(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n// }\n\nm = {\n    topic : \"POI\",\n    payload : {\n        x:  41.890,\n        y:  12.492,\n        noise:  noises,\n    },\n    // timestamp:  Date.now()\n    timestamp: context.timestamp\n};\nreturn m;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 320,
+        "wires": [
+            [
+                "50dd3aed9dcc3133"
+            ]
+        ]
+    },
+    {
+        "id": "8cb2e989d87c5557",
+        "type": "inject",
+        "z": "e5ba676816adcdd0",
+        "d": true,
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "2",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 300,
+        "wires": [
+            [
+                "774b264e7e852a9a"
+            ]
+        ]
+    },
+    {
+        "id": "ddca50d356b3a3e7",
+        "type": "kafkajs-client",
+        "name": "Test Client",
+        "brokers": "127.0.0.1:9092",
+        "clientid": "384",
+        "connectiontimeout": "3000",
+        "requesttimeout": "25000",
+        "advancedretry": false,
+        "maxretrytime": "30000",
+        "initialretrytime": "300",
+        "factor": "0.2",
+        "multiplier": "2",
+        "retries": "5",
+        "auth": "none",
+        "tlsselfsign": false,
+        "tlscacert": "",
+        "tlsclientcert": "",
+        "tlsprivatekey": "",
+        "tlspassphrase": "",
+        "saslssl": true,
+        "saslmechanism": "plain",
+        "loglevel": "error"
+    },
+    {
+        "id": "1425cd6007df2372",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mqtt.neslab.it",
+        "port": "3200",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    }
+]
