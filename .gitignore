@@ -12,5 +12,5 @@ buildNumber.properties
 .idea
 *.iml
 /MPI_Simulation/.vs/MPI_Simulation/v17
-/AkkaDemo
+/Demo-Akka
 /akka-quickstart-java
