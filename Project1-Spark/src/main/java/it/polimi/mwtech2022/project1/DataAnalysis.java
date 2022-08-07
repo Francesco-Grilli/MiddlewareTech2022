@@ -15,9 +15,6 @@ import static org.apache.spark.sql.functions.*;
 
 public class DataAnalysis {
 
-    // TODO: Test watermarks, try sending late data
-    // TODO: check semantics: can we guarantee EOS? (spark guarantees writing on kafka with ALOS)
-
     public static void main(String[] args) throws TimeoutException {
 
         LogUtils.setLogLevel();
@@ -132,11 +129,9 @@ public class DataAnalysis {
                 .map(inputToRow, Encoders.tuple(Encoders.STRING(), Encoders.DOUBLE(), Encoders.TIMESTAMP(), Encoders.LONG()))
                 .toDF("POI", "Noise", "Timestamp", "TSLong");
 
-        // testing OK
-        // TODO: check watermark
         final Dataset<Row> hourlyAverages = fiveMinInput
                 // actual aggregation part
-                .withWatermark("timestamp", "2 minutes")
+                .withWatermark("Timestamp", "2 minutes")
                 .withColumn("Noise-linear", pow(10, col("Noise").divide(10)))
                 .groupBy(window(col("Timestamp"), "1 hour", "5 minutes"),
                         col("POI")) // assuming unique POINames
@@ -154,7 +149,7 @@ public class DataAnalysis {
                 .option("checkpointLocation", settings.getCheckpointLocation() + "/hourQuery")
                 .option("kafka.bootstrap.servers", settings.getKafkaServer())
                 .option("topic", settings.getHourTopic())
-                .trigger(Trigger.ProcessingTime("2 minutes")) //periodic query: query computation every /*processing time*/
+                .trigger(Trigger.ProcessingTime("1 minute")) //periodic query: query computation every /*processing time*/
                 .start();
 
         /*----------------------------------------------/
