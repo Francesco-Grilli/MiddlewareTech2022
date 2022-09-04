@@ -13,8 +13,9 @@
 #define LOG_MODULE "SENSOR"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
-#define MQTT_SENSOR_PUBLISH_TOPIC "testproject12345"
-#define MQTT_SENSOR_SUB_TOPIC "mdw2122datetime"
+#define MQTT_SENSOR_PUBLISH_TOPIC "gblgrlmnn/noises"
+#define MQTT_SENSOR_SUB_TOPIC "gblgrlmnn/tsreply"
+#define MQTT_SENSOR_CON_TOPIC "gblgrlmnn/tsrequest"
 
 #include <string.h>
 
@@ -68,6 +69,7 @@ long long fast_atoi( const char * str )
     return val;
 }
 
+static int sent_out_conf = 1;
 static float lat;
 static float lon;
 static long long timestamp = 0;
@@ -159,6 +161,7 @@ typedef struct mqtt_client_config {
 #define BUFFER_SIZE 64
 static char client_id[BUFFER_SIZE];
 static char pub_topic[BUFFER_SIZE];
+static char ts_config_topic[BUFFER_SIZE];
 static char sub_topic[BUFFER_SIZE];
 /*---------------------------------------------------------------------------*/
 /*
@@ -212,6 +215,18 @@ pub_handler(const char *topic, uint16_t topic_len, const uint8_t *chunk,
 
 }*/
 /*---------------------------------------------------------------------------*/
+
+static void unsubscribe(void){
+  mqtt_status_t status;
+
+  status = mqtt_unsubscribe(&conn, NULL, sub_topic);
+
+  LOG_INFO("Usubscribing\n");
+  if(status == MQTT_STATUS_OUT_QUEUE_FULL) {
+    LOG_INFO("Tried to subscribe but command queue was full!\n");
+  }
+}
+
 static void
 mqtt_event(struct mqtt_connection *m, mqtt_event_t event, void *data)
 {
@@ -243,7 +258,10 @@ mqtt_event(struct mqtt_connection *m, mqtt_event_t event, void *data)
 
     if(!timestamp){
       timestamp = fast_atoi((char *)msg_ptr->payload_chunk) - clock_seconds()*1000;
+      sent_out_conf = 0;
+      unsubscribe();
     }
+
 /*
     pub_handler(msg_ptr->topic, strlen(msg_ptr->topic), msg_ptr->payload_chunk,
                 msg_ptr->payload_length);*/
@@ -275,6 +293,20 @@ construct_pub_topic(void)
   /* len < 0: Error. Len >= BUFFER_SIZE: Buffer too small */
   if(len < 0 || len >= BUFFER_SIZE) {
     LOG_ERR("Pub topic: %d, buffer %d\n", len, BUFFER_SIZE);
+    return 0;
+  }
+
+  return 1;
+}
+
+static int
+construct_conf_topic(void)
+{
+  int len = snprintf(ts_config_topic, BUFFER_SIZE,"%s", MQTT_SENSOR_CON_TOPIC);
+
+  /* len < 0: Error. Len >= BUFFER_SIZE: Buffer too small */
+  if(len < 0 || len >= BUFFER_SIZE) {
+    LOG_ERR("Conf topic: %d, buffer %d\n", len, BUFFER_SIZE);
     return 0;
   }
 
@@ -334,6 +366,12 @@ update_config(void)
     return;
   }
 
+  if(construct_conf_topic() == 0) {
+    /* Fatal error. Topic larger than the buffer */
+    state = STATE_CONFIG_ERROR;
+    return;
+  }
+
   /* Reset the counter */
   seq_nr_value = 0;
 
@@ -382,6 +420,7 @@ subscribe(void)
     LOG_INFO("Tried to subscribe but command queue was full!\n");
   }
 }
+
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -451,6 +490,41 @@ publish(void)
 
   LOG_INFO("Publish sent out!\n");
 }
+
+static void
+timestamp_req(void)
+{
+  /* Publish MQTT topic */
+  int len;
+  int remaining = APP_BUFFER_SIZE;
+
+  seq_nr_value++;
+
+
+  buf_ptr = app_buffer;
+
+	len = snprintf(buf_ptr, remaining,"{\"request\": \"timestamp\"}"); 
+
+
+	if(len < 0 || len >= remaining) {
+	  LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining, len);
+	  return;
+	}
+
+	remaining -= len;
+	buf_ptr += len;
+
+	if(len < 0 || len >= remaining) {
+	  LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining, len);
+	  return;
+	}
+
+  mqtt_publish(&conn, NULL, ts_config_topic, (uint8_t *)app_buffer,
+               strlen(app_buffer), MQTT_QOS_LEVEL_0, MQTT_RETAIN_OFF);
+
+  LOG_INFO("Config sent out!\n");
+}
+
 /*---------------------------------------------------------------------------*/
 static void
 connect_to_broker(void)
@@ -511,8 +585,13 @@ state_machine(void)
         subscribe();
         state = STATE_PUBLISHING;
       } else {
-	sensor_explicitation();
-        publish();
+        if (sent_out_conf){
+          timestamp_req();
+          sent_out_conf = 0;
+        }else{
+          sensor_explicitation();
+          publish();
+        }
       }
       etimer_set(&publish_periodic_timer, conf.pub_interval);
 
