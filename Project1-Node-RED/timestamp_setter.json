@@ -1,0 +1,133 @@
+[
+    {
+        "id": "ede6f536b39e1cf1",
+        "type": "tab",
+        "label": "Timestamp setter",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "8bfa6713c605fd89",
+        "type": "mqtt in",
+        "z": "ede6f536b39e1cf1",
+        "name": "",
+        "topic": "gblgrlmnn/tsrequest",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "1425cd6007df2372",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 210,
+        "y": 80,
+        "wires": [
+            [
+                "880a3961ae1fcc72",
+                "fe8c3f0f59f2dd8d"
+            ]
+        ]
+    },
+    {
+        "id": "defb7213f045080e",
+        "type": "mqtt out",
+        "z": "ede6f536b39e1cf1",
+        "name": "",
+        "topic": "gblgrlmnn/tsreply",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "1425cd6007df2372",
+        "x": 550,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "880a3961ae1fcc72",
+        "type": "function",
+        "z": "ede6f536b39e1cf1",
+        "name": "",
+        "func": "msg.payload = Date.now();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 160,
+        "wires": [
+            [
+                "defb7213f045080e"
+            ]
+        ]
+    },
+    {
+        "id": "fe8c3f0f59f2dd8d",
+        "type": "debug",
+        "z": "ede6f536b39e1cf1",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 490,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "b90271376961f821",
+        "type": "mqtt in",
+        "z": "ede6f536b39e1cf1",
+        "name": "",
+        "topic": "gblgrlmnn/tsreply",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "1425cd6007df2372",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 200,
+        "y": 240,
+        "wires": [
+            [
+                "fe8c3f0f59f2dd8d"
+            ]
+        ]
+    },
+    {
+        "id": "1425cd6007df2372",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mqtt.neslab.it",
+        "port": "3200",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    }
+]

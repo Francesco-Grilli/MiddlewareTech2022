@@ -102,7 +102,7 @@
         "type": "function",
         "z": "e5ba676816adcdd0",
         "name": "Generate Rome data",
-        "func": "//set threshold\nif(!context.threshold) context.threshold = 100; \n//create array for noises\nnoises = [];\n//always generate 6 noise measurements\nfor(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n}\n//create message\nm = {\n    topic : \"POI\",\n    payload : {\n        lat:  41.875 + Math.random()*0.035,\n        lon:  12.466 + Math.random()*0.037,\n        noise:  noises, //set noises to be the 6 measurements or their average\n    },\n    timestamp:  Date.now()\n};\nreturn m;\n\n//receives as input the array of 6 measurements and computes the average\n//returns the average if it is under a threshold, the array itself otherwise\nfunction getNoisesOrAverage(noises){\n    //create return array\n    n = [];\n    //initialize sum and count for average\n    sum = 0;\n    count = noises.length;\n    //sum all noises\n    noises.forEach(e => sum += e);\n    //compute average\n    avg = sum / count;\n    //return results\n    if(avg>context.threshold){\n        return noises;\n    }\n    else{\n        n.push(avg);\n        return n;\n    }\n}",
+        "func": "//set threshold\nif(!context.threshold) context.threshold = 120; \n//create array for noises\nnoises = [];\n//always generate 6 noise measurements\nfor(i=0; i<6; i++){\n    noises.push(Math.random()*90 + 50);\n}\n//create message\nm = {\n    topic : \"POI\",\n    payload : {\n        lat:  41.875 + Math.random()*0.035,\n        lon:  12.466 + Math.random()*0.037,\n        noise:  noises, //set noises to be the 6 measurements or their average\n    },\n    timestamp:  Date.now()\n};\nreturn m;\n\n//receives as input the array of 6 measurements and computes the average\n//returns the average if it is under a threshold, the array itself otherwise\nfunction getNoisesOrAverage(noises){\n    //create return array\n    n = [];\n    //initialize sum and count for average\n    sum = 0;\n    count = noises.length;\n    //sum all noises\n    noises.forEach(e => sum += e);\n    //compute average\n    avg = sum / count;\n    //return results\n    if(avg>context.threshold){\n        return noises;\n    }\n    else{\n        n.push(avg);\n        return n;\n    }\n}",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -170,9 +170,8 @@
         "id": "c159cb74bc37f656",
         "type": "mqtt in",
         "z": "e5ba676816adcdd0",
-        "d": true,
         "name": "MQTT input",
-        "topic": "testproject12345",
+        "topic": "gblgrlmnn/noises",
         "qos": "0",
         "datatype": "json",
         "broker": "1425cd6007df2372",
@@ -193,7 +192,7 @@
         "type": "function",
         "z": "e5ba676816adcdd0",
         "name": "",
-        "func": "msg.topic = 'POI';\nmsg.timestamp = msg.payload.timestamp;\nreturn  msg;",
+        "func": "msg.topic = 'POI';\nmsg.timestamp = msg.payload.timestamp;\nmsg.payload.lat = msg.payload.lat.replace(\",\",\".\");\nmsg.payload.lon = msg.payload.lon.replace(\",\",\".\");\nreturn  msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -291,7 +290,7 @@
         "type": "function",
         "z": "e5ba676816adcdd0",
         "name": "Fake data generator",
-        "func": "//create array for noises\nnoises = [125.635];\n//fabricate message\nm = {\n    topic : \"POI\",\n    payload : {\n        lat:  -35.835,\n        lon:  150.480,\n        noise:  noises\n        // noise: []\n    },\n    timestamp:  Date.now()\n    // timestamp: -3\n};\nreturn m;\n",
+        "func": "//create array for noises\nnoises = [125.635];\n//fabricate message\nm = {\n    topic : \"POI\",\n    payload : {\n        lat:  41.8902,\n        lon:  12.4922,\n        noise:  noises\n        // noise: []\n    },\n    // timestamp:  Date.now()\n    timestamp: 1659862800000\n};\nreturn m;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -320,27 +319,9 @@
         "y": 300,
         "wires": [
             [
-                "5096fb816ad92345",
-                "bb24976c28065340"
+                "5096fb816ad92345"
             ]
         ]
-    },
-    {
-        "id": "bb24976c28065340",
-        "type": "debug",
-        "z": "e5ba676816adcdd0",
-        "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 850,
-        "y": 220,
-        "wires": []
     },
     {
         "id": "ddca50d356b3a3e7",
