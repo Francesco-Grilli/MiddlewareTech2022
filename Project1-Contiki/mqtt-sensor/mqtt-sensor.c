@@ -3,16 +3,18 @@
 #include "contiki.h"
 #include "mqtt.h"
 #include "rpl.h"
+#include "os/sys/clock.h"
 #include "net/ipv6/uip.h"
 #include "net/ipv6/sicslowpan.h"
 #include "sys/etimer.h"
+#include "os/lib/fs/fat/integer.h"
 
 #include "sys/log.h"
 #define LOG_MODULE "SENSOR"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
 #define MQTT_SENSOR_PUBLISH_TOPIC "testproject12345"
-#define MQTT_SENSOR_SUB_TOPIC "mdw2122/config"
+#define MQTT_SENSOR_SUB_TOPIC "mdw2122datetime"
 
 #include <string.h>
 
@@ -30,7 +32,7 @@ static float mw[6] = {0,0,0,0,0,0};
 static float out[6] = {0,0,0,0,0,0};
 
 void noise_registration(){
-  mw[(count%6)+1] = rand()*(random_rand()%50);
+  mw[(count%6)+1] = (random_rand()%50);
   count++;
   return;
 }
@@ -56,10 +58,19 @@ void sensor_explicitation(){
   }
 }
 
-static float random_characterization;
-static float posX;
-static float posY;
-static int timestamp = 0;
+long long fast_atoi( const char * str )
+{
+    long long val = 0;
+    while( *str ) {
+        val = val*10 + (*str++ - '0');
+
+    }
+    return val;
+}
+
+static float lat;
+static float lon;
+static long long timestamp = 0;
 
 
 
@@ -192,14 +203,14 @@ ipaddr_sprintf(char *buf, uint8_t buf_len, const uip_ipaddr_t *addr)
   return len;
 }
 /*---------------------------------------------------------------------------*/
-static void
+/*static void
 pub_handler(const char *topic, uint16_t topic_len, const uint8_t *chunk,
             uint16_t chunk_len)
 {
   LOG_INFO("Pub handler: topic='%s' (len=%u), chunk_len=%u\n", topic, topic_len,
       chunk_len);
 
-}
+}*/
 /*---------------------------------------------------------------------------*/
 static void
 mqtt_event(struct mqtt_connection *m, mqtt_event_t event, void *data)
@@ -220,16 +231,22 @@ mqtt_event(struct mqtt_connection *m, mqtt_event_t event, void *data)
   }
   case MQTT_EVENT_PUBLISH: {
     msg_ptr = data;
-
+    /*
     if(msg_ptr->first_chunk) {
       msg_ptr->first_chunk = 0;
       LOG_INFO("Application received a publish on topic '%s'; payload "
           "size is %i bytes\n",
           msg_ptr->topic, msg_ptr->payload_length);
-    }
+    }*/
 
+    //LOG_INFO("Timestamp : %s, or as a number: %lld", (msg_ptr->payload_chunk), fast_atoi((char *)msg_ptr->payload_chunk)); 
+
+    if(!timestamp){
+      timestamp = fast_atoi((char *)msg_ptr->payload_chunk) - clock_seconds()*1000;
+    }
+/*
     pub_handler(msg_ptr->topic, strlen(msg_ptr->topic), msg_ptr->payload_chunk,
-                msg_ptr->payload_length);
+                msg_ptr->payload_length);*/
     break;
   }
   case MQTT_EVENT_SUBACK: {
@@ -338,9 +355,8 @@ update_config(void)
 static void
 init_config()
 {
-  random_characterization = random_rand();
-	posX = rand()*(random_rand()%100);
-	posY = rand()*(random_rand()%100);
+	lat = ((float)rand()/(float)(RAND_MAX))*(41.909500-41.876000)+41.876000;
+	lon = ((float)rand()/(float)(RAND_MAX))*(12.501000-12.466000)+12.466000;
   /* Populate configuration with default values */
   memset(&conf, 0, sizeof(mqtt_client_config_t));
 
@@ -377,21 +393,22 @@ publish(void)
 
   seq_nr_value++;
 
-	timestamp++;
 
   buf_ptr = app_buffer;
 
+  long long actualtime = timestamp + clock_seconds()*1000;
+  
 
   if(threshpass){
 		len = snprintf(buf_ptr, remaining,
 		               "{"
-		               "\"posx\": \"%.6f\","
-		               "\"posy\": \"%.6f\","
+		               "\"lat\": \"%.6f\","
+		               "\"lon\": \"%.6f\","
 		               "\"noise\": [\"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\"],"
-									 "\"timestamp\": %d"
-		               "}", posX, posY ,out[0],out[1],out[2],out[3],out[4],out[5],timestamp); 
+									 "\"timestamp\": %lld"
+		               "}", lat, lon ,out[0],out[1],out[2],out[3],out[4],out[5],actualtime); 
 
-    LOG_INFO("{\"posx\": \"%.6f\",\"posy\": \"%.6f\",\"noise\": [\"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\"]\"timestamp\": %d}", rand(), rand() ,out[0],out[1],out[2],out[3],out[4],out[5],timestamp);
+    LOG_INFO("{\"lat\": \"%.6f\",\"lon\": \"%.6f\",\"noise\": [\"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\", \"%.6f\"]\"timestamp\": %lld}", lat, lon, out[0],out[1],out[2],out[3],out[4],out[5],actualtime);
 
 		if(len < 0 || len >= remaining) {
 		  LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining, len);
@@ -408,13 +425,13 @@ publish(void)
   }else{
 		len = snprintf(buf_ptr, remaining,
 		               "{"
-		               "\"posx\": \"%.6f\","
-		               "\"posy\": \"%.6f\","
+		               "\"lat\": \"%.6f\","
+		               "\"lon\": \"%.6f\","
 		               "\"noise\": [\"%.6f\"],"
-									 "\"timestamp\": %d"
-		               "}", posX, posY ,out[0], timestamp); 
+									 "\"timestamp\": %lld"
+		               "}", lat, lon ,out[0], actualtime); 
 
-    LOG_INFO("{\"posx\": \"%.6f\",\"posy\": \"%.6f\",\"noise\": [\"%.6f\"],\"timestamp\": %d}", rand(), rand() ,out[0], timestamp);
+    LOG_INFO("{\"lat\": \"%.6f\",\"lon\": \"%.6f\",\"noise\": [\"%.6f\"],\"timestamp\": %lld}", lat, lon ,out[0], actualtime);
 
 		if(len < 0 || len >= remaining) {
 		  LOG_ERR("Buffer too short. Have %d, need %d + \\0\n", remaining, len);
