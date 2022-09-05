@@ -109,7 +109,7 @@ void Simulator::sendDataMosquitto(double latitude, double longitude, double nois
 
 	std::string s = message.str();
 
-	mosquitto_publish(this->mosq, nullptr, "testproject12345", s.size(), s.c_str(), 0, false);
+	mosquitto_publish(this->mosq, nullptr, "gblgrlmnn/noises", s.size(), s.c_str(), 0, false);
 
 }
 
@@ -173,7 +173,7 @@ void Simulator::averagingData()
 
 			
 
-			std::cout << "Current lat long" << this->parameters.latitude << "   " << this->parameters.longitude << "\n";
+			//std::cout << "Current lat long" << this->parameters.latitude << "   " << this->parameters.longitude << "\n";
 
 			/*currentLatitude = this->parameters.latitude - (double)j/111.32;
 			currentLongitude = this->parameters.longitude + (double)i/111.32 / std::cos(this->parameters.latitude * 0.01745);*/
