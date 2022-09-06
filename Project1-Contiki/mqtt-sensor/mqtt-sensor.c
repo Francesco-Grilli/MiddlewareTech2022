@@ -25,7 +25,7 @@
  *
  */
 //static int num_messages = 0;
-static int threshold = 60;
+static int threshold = 70;
 static int threshpass = false;
 static int count = 0;
 static float mw[6] = {0,0,0,0,0,0};
@@ -33,7 +33,7 @@ static float mw[6] = {0,0,0,0,0,0};
 static float out[6] = {0,0,0,0,0,0};
 
 void noise_registration(){
-  mw[(count%6)+1] = (((float)rand()/(float)(RAND_MAX))*55) + 20;
+  mw[(count%6)+1] = (((float)rand()/(float)(RAND_MAX))*55) + 35;
   count++;
   return;
 }
