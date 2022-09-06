@@ -67,7 +67,7 @@ public class SupervisorActor extends AbstractPersistentActorWithAtLeastOnceDeliv
                 this.nextStage = future.result(scala.concurrent.duration.Duration.create(5, TimeUnit.MINUTES), null);
             } catch (InterruptedException | TimeoutException | ActorInitializationException | ActorNotFound e) {
                 System.out.println("Error, next stage not found, waiting for the next stage to be instantiated");
-                Thread.sleep(2000);
+                Thread.sleep(5000);
             }
         }
 
