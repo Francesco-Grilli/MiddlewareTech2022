@@ -23,6 +23,30 @@ The project has been carefully tested under the following configuration; all the
 
 ## System setup
 <!-- Insert explanations to setup Contiki-->
+### Contiki-ng
+Contiki-NG is an open-source, cross-platform operating system for Next-Generation IoT devices, it can be easily downloaded from the official repository [website](https://github.com/contiki-ng/contiki-ng) however the new versions might not be compatible expecially with the introduction of MQTT v.5, to access a remote broker mosquitto will be needed [website](https://mosquitto.org/download/), to launch cooja we need either apache-ant [website](https://ant.apache.org) or gradle depending on the branch of the repo (this project is done with ant but the project is slowly shifting towards gradle), and JAVA 11 at least, other needed tools are the gcc compiler and the make tools (assumed already present on an interested configuration).
+To configure Mosquitto
+- Modify the configuration file of mosquitto with `sudo nano /etc/mosquitto/mosquitto.conf`
+- Add 
+      `connection bridge-01 
+	    address mqtt.neslab.it:3200 
+      topic # out 0
+	    topic # in 0`
+- Save the file and restart the service `sudo service mosquitto restart`
+
+To launch the simulation
+- Move the content of `Project1-Contiki` inside your contiki installation folder from now on referenced as `CONTIKI`
+- `CONTIKI/tools/cooja && ant run` to start the Cooja simulator
+- Load the `CONTIKI/Project1-Contiki/project_simulation_1.csc` and compile the motes
+- Right-click on the border-router mote or  mote_1 and click on "mote tools for contiki -> Serial Socket (server)" on the window that pops up check that the listen port is 60001 then press start
+- Start the simulation
+- Open a new terminal and in the `CONTIKI/Project1-Contiki/rpl-border-router` directory insert the command `make TARGET=cooja connect-router-cooja` this will connect the simulated border router
+
+After about 30-40 seconds the motes will start to connect and post data
+Advice: we recommend having the Node-red bubble already up and running and to attempt the connection of the border router once the mote is actually started to avouid bugs
+
+The Linux virtual machine was our choice since during testing the cooja application would sometime crash however the virtualization step is not mandatory to run this part of the project. 
+
 
 ### MPI
 Message Passing Interface (MPI) is a portable message-passing standard designed to function on parallel computing architectures. There are several open source implementation for instance we have chosen Open MPI which is open source: [website](https://www.open-mpi.org/).
