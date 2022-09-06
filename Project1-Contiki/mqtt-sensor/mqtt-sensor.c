@@ -25,7 +25,7 @@
  *
  */
 //static int num_messages = 0;
-static int threshold = 40;
+static int threshold = 60;
 static int threshpass = false;
 static int count = 0;
 static float mw[6] = {0,0,0,0,0,0};
@@ -33,7 +33,7 @@ static float mw[6] = {0,0,0,0,0,0};
 static float out[6] = {0,0,0,0,0,0};
 
 void noise_registration(){
-  mw[(count%6)+1] = (random_rand()%50);
+  mw[(count%6)+1] = (((float)rand()/(float)(RAND_MAX))*55) + 20;
   count++;
   return;
 }
@@ -578,7 +578,7 @@ state_machine(void)
        */
       connect_attempt = 0;
     }
-
+    sensor_explicitation();
     if(mqtt_ready(&conn) && conn.out_buffer_sent) {
       /* Connected; publish */
       if(state == STATE_CONNECTED) {
@@ -589,8 +589,11 @@ state_machine(void)
           timestamp_req();
           sent_out_conf = 0;
         }else{
-          sensor_explicitation();
           publish();
+	  if(clock_seconds()%86400 > 85000){
+	    sent_out_conf = 1;
+	    state = STATE_CONNECTED;
+	  }
         }
       }
       etimer_set(&publish_periodic_timer, conf.pub_interval);
