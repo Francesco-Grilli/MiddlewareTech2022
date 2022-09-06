@@ -28,14 +28,14 @@ The project has been carefully tested under the following configuration; all the
 
 ## System setup
 ### Contiki-NG
-Contiki-NG was run on a Linux virtual machine and can be easily downloaded from the official [repository](https://github.com/contiki-ng/contiki-ng); however the newest versions might not be compatible, especially with the introduction of MQTT v.5.
+Contiki-NG was run on a Linux virtual machine and can be easily downloaded from the neslab [repository](https://bitbucket.org/neslabpolimi/contiki-ng-mw-2122.git); the official [repository](https://github.com/contiki-ng/contiki-ng) is partially supported, however the newest versions might not be compatible, especially with the introduction of MQTT v.5.
 
 #### Additional required software
 - [Mosquitto](https://mosquitto.org/download/), to access a remote broker
-- [Apache Ant](https://ant.apache.org) or Gradle[^ant-gradle], to launch Cooja
+- [Apache Ant](https://ant.apache.org)
 - JAVA 11 or newer versions
 - Gcc compiler
-- Make tool[^make-tool]
+- Make tool on linux
 
 #### Mosquitto configuration
 - Modify the configuration file of mosquitto with `sudo nano /etc/mosquitto/mosquitto.conf` by adding:
