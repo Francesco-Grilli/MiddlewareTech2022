@@ -1,5 +1,5 @@
 OBJECT = main
-MPIRUNFLAGS = -np 4
+MPIRUNFLAGS = -np 2
 MPIDISTRIBUTE = --hostfile hostfile
 
 all: $(wildcard *.cpp)

@@ -251,7 +251,7 @@ void Simulator::calculateNoise()
 	for (auto& p : this->people) {
 		int normX = std::floor(p.posX);
 		int normY = std::floor(p.posY);
-		std::cout << "People x y:  " << normX << " " << normY<<"\n";
+		//std::cout << "People x y:  " << normX << " " << normY<<"\n";
 
 		int x1 = std::max(normX - this->parameters.distanceAffectPeople, 0);
 		int x2 = std::min(normX + this->parameters.distanceAffectPeople, (this->parameters.width-1));
@@ -277,8 +277,8 @@ void Simulator::calculateNoise()
 	for (auto& p : this->cars) {
 		int normX = std::floor(p.posX);
 		int normY = std::floor(p.posY);
-		std::cout << "Car x y:  " << normX << " " << normY << "\n";
-		std::cout << "i am process" << this->parameters.rank << "\n";
+		/*std::cout << "Car x y:  " << normX << " " << normY << "\n";
+		std::cout << "i am process" << this->parameters.rank << "\n";*/
 
 		int x1 = std::max(normX - this->parameters.distanceAffectCar, 0);
 		int x2 = std::min(normX + this->parameters.distanceAffectCar, (this->parameters.width - 1));
