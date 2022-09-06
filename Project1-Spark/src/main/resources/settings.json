@@ -9,7 +9,7 @@
   "day-topic": "dayAvg",
   "week-topic": "weekAvg",
   "top-10-topic": "top10noisiest",
-  "threshold": 100,
+  "threshold": 43,
   "checkpoint-location": "/mnt/c/tmp",
   "shuffle.partitions": 8
 }
