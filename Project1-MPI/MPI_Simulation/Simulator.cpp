@@ -147,11 +147,13 @@ void Simulator::averagingData()
 			double sum = 0;
 			for (int k = i * this->parameters.granularity; k < i * this->parameters.granularity + this->parameters.granularity; k++) {
 				for (int s = j * this->parameters.granularity; s < j * this->parameters.granularity + this->parameters.granularity; s++) {
-					sum += this->noises[k][s];
+					sum += std::pow(10, this->noises[k][s]/10);
 				}
 			}
 
 			sum = sum / (this->parameters.granularity * this->parameters.granularity);
+
+			sum = std::log10(sum)*10;
 
 			for (int k = i * this->parameters.granularity; k < i * this->parameters.granularity + this->parameters.granularity; k++) {
 				for (int s = j * this->parameters.granularity; s < j * this->parameters.granularity + this->parameters.granularity; s++) {
