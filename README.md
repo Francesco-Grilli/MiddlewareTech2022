@@ -6,6 +6,11 @@ This project was developed as main assignment for the course of Middleware Techn
 - [Documents](#documents)
 - [Tested configuration](#tested-configuration)
 - [System setup](#system-setup)
+	- [Contiki-NG](#contiki-ng)
+	- [MPI](#mpi)
+	- [Node-RED](#node-red)
+	- [Spark](#spark)
+	- [Kafka](#kafka)
 - [Troubleshooting](#troubleshooting)
 - [Contributors](#contributors)
 
@@ -22,50 +27,52 @@ The project has been carefully tested under the following configuration; all the
 - A Windows computer to host Node-RED, Spark and Kafka sections.
 
 ## System setup
-### Contiki-ng
-Contiki-NG is an open-source, cross-platform operating system for Next-Generation IoT devices, it can be easily downloaded from the official [repository](https://github.com/contiki-ng/contiki-ng) however the new-est versions might not be compatible expecially with the introduction of MQTT v.5, to access a remote broker [mosquitto](https://mosquitto.org/download/) will be needed, to launch cooja we need either [apache-ant](https://ant.apache.org) or gradle depending on the branch of the repo (this project is done with ant but the Contiki-ng-group is slowly shifting towards gradle), and JAVA 11 at least, other needed tools are the gcc compiler and the make tool (assumed already present on an interested configuration).
+### Contiki-NG
+Contiki-NG was run on a Linux virtual machine and can be easily downloaded from the official [repository](https://github.com/contiki-ng/contiki-ng); however the newest versions might not be compatible, especially with the introduction of MQTT v.5.
 
-To configure Mosquitto
+#### Additional required software
+- [Mosquitto](https://mosquitto.org/download/), to access a remote broker
+- [Apache Ant](https://ant.apache.org) or Gradle[^ant-gradle], to launch Cooja
+- JAVA 11 or newer versions
+- Gcc compiler
+- Make tool[^make-tool]
+
+#### Mosquitto configuration
 - Modify the configuration file of mosquitto with `sudo nano /etc/mosquitto/mosquitto.conf`
 - Add 
-
-	`connection bridge-01`
-	
-	`address mqtt.neslab.it:3200`
-	
-	`topic # out 0`
-	
-	`topic # in 0`
+	- `connection bridge-01`
+	- `address mqtt.neslab.it:3200`
+	- `topic # out 0`
+	- `topic # in 0`
 - Save the file and restart the service `sudo service mosquitto restart`
 
-To launch the simulation
-- Move the content of `Project1-Contiki` inside your contiki installation folder from now on referenced as `CONTIKI`
-- `CONTIKI/tools/cooja && ant run` to start the Cooja simulator
+#### Launching the simulation
+- Move the content of `Project1-Contiki` inside your contiki installation folder (from now on referenced as `CONTIKI`)
+- Type in the shell `CONTIKI/tools/cooja && ant run` to start the Cooja simulator
 - Load the `CONTIKI/Project1-Contiki/project_simulation_1.csc` and compile the motes
-- Right-click on the border-router mote or  mote_1 and click on "mote tools for contiki -> Serial Socket (server)" on the window that pops up check that the listen port is 60001 then press start
+- Right-click on the border-router mote or mote_1 and click on "mote tools for contiki -> Serial Socket (server)"; on the window that pops up check that the listen port is 60001 then press start
 - Start the simulation
-- Open a new terminal and in the `CONTIKI/Project1-Contiki/rpl-border-router` directory insert the command `make TARGET=cooja connect-router-cooja` this will connect the simulated border router
+- Open a new terminal and in the `CONTIKI/Project1-Contiki/rpl-border-router` directory insert the command `make TARGET=cooja connect-router-cooja`; this will connect the simulated border router
 
-After about 30-40 seconds the motes will start to connect and post data
+After about 30-40 seconds the motes will start to connect and send data.
 
-Advice: we recommend having the Node-red bubble already up and running and to attempt the connection of the border router once the mote is actually started to avouid bugs
+Advice: we recommend having the Node-RED flows already up and running and to attempt the connection of the border router once the mote is actually started in order to avoid bugs
 
-The Linux virtual machine was our choice since during development the cooja application would sometime crash however the virtualization step is not mandatory to run this part of the project. 
+<!-- The Linux virtual machine was our choice since during development the cooja application would sometime crash however the virtualization step is not mandatory to run this part of the project. -->
 
 
 ### MPI
-Message Passing Interface (MPI) is a portable message-passing standard designed to function on parallel computing architectures. There are several open source implementation for instance we have chosen Open MPI which is open source: [website](https://www.open-mpi.org/).
-In order to compile and run program for MPI on Windows you need to download WSL and follow the instruction on the official website.
+There are several open source implementation; for instance, the project was developed using Open MPI which is open source and can be downloaded from its official [website](https://www.open-mpi.org/).
+In order to compile and run program for MPI on Windows, WSL is needed. Then follow the instruction on the official website.
 To launch the program:
-- Compile the code using the command: mpic++ -o main Main.cpp Simulator.cpp Simulator.h SimulationParameters.h -lmosquitto
-- Run the program with the parameters requested: mpirun -np 2 ./main 1000 1000 16 16 60 80 2 4 5.0 14.0 15 100 41.903641 12.466195
+- Compile the code using the command: `mpic++ -o main Main.cpp Simulator.cpp Simulator.h SimulationParameters.h -lmosquitto`
+- Run the program with the requested parameters, for example: `mpirun -np 2 ./main 1000 1000 16 16 60 80 2 4 5.0 14.0 15 100 41.903641 12.466195`
 
-The compiling process require the installation of the mosquitto library from the official site [website](https://mosquitto.org/download/) and the linking of it.
-While running the process you can specify the number of processes to allocate.
+The compiling process requires the download and installation of the mosquitto library from the official site [website](https://mosquitto.org/download/) and its linking to the program. <!-- is it right that the library has to be linked to the program? -->
+<!-- While running the process you can specify the number of processes to allocate. -->
 
 To shut down the system:
-- Press 'Ctrl + C' in the WSL terminal
-
+- Press `Ctrl + C` in the WSL terminal
 
 ### Node-RED
 Node-RED was run natively on a Windows machine; to install it, follow the instructions provided on the Node-RED [website](https://nodered.org/docs/getting-started/local). You should be able to run it, then, just by typing the `node-red` command in the `cmd` shell.
@@ -101,5 +108,7 @@ The program can be then gently shut down pressing `Ctrl + C`.
 - [Grilli Francesco](https://github.com/Francesco-Grilli)
 - [Mannarino Andrea](https://github.com/AndreaMannarino)
 
+[^ant-gradle]: This project is done with Ant but the Contiki-NG group is slowly shifting towards gradle
+[^make-tool]: Assumed already present on an interested configuration
 [^spark-master]: Spark master's location depends on your Spark settings; here the default settings were used, so the master was started at `localhost:7077`
 [^spark-submit]: Replace `/path/to/project/` with the actual path of the project directory
