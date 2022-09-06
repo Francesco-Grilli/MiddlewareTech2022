@@ -38,13 +38,13 @@ Contiki-NG was run on a Linux virtual machine and can be easily downloaded from 
 - Make tool[^make-tool]
 
 #### Mosquitto configuration
-- Modify the configuration file of mosquitto with `sudo nano /etc/mosquitto/mosquitto.conf`
-- Add 
+- Modify the configuration file of mosquitto with `sudo nano /etc/mosquitto/mosquitto.conf` by adding:
 	- `connection bridge-01`
 	- `address mqtt.neslab.it:3200`
 	- `topic # out 0`
 	- `topic # in 0`
-- Save the file and restart the service `sudo service mosquitto restart`
+- Save configuration file
+- Restart the service typing `sudo service mosquitto restart`
 
 #### Launching the simulation
 - Move the content of `Project1-Contiki` inside your contiki installation folder (from now on referenced as `CONTIKI`)
@@ -52,14 +52,11 @@ Contiki-NG was run on a Linux virtual machine and can be easily downloaded from 
 - Load the `CONTIKI/Project1-Contiki/project_simulation_1.csc` and compile the motes
 - Right-click on the border-router mote or mote_1 and click on "mote tools for contiki -> Serial Socket (server)"; on the window that pops up check that the listen port is 60001 then press start
 - Start the simulation
-- Open a new terminal and in the `CONTIKI/Project1-Contiki/rpl-border-router` directory insert the command `make TARGET=cooja connect-router-cooja`; this will connect the simulated border router
+- Open a new terminal and in the `CONTIKI/Project1-Contiki/rpl-border-router` directory insert the command `make TARGET=cooja connect-router-cooja`; this will connect the simulated border router.
 
 After about 30-40 seconds the motes will start to connect and send data.
 
-Advice: we recommend having the Node-RED flows already up and running and to attempt the connection of the border router once the mote is actually started in order to avoid bugs
-
-<!-- The Linux virtual machine was our choice since during development the cooja application would sometime crash however the virtualization step is not mandatory to run this part of the project. -->
-
+Advice: we recommend having the Node-RED flows already up and running and to attempt the connection of the border router once the mote is actually started in order to avoid bugs.
 
 ### MPI
 There are several open source implementation; for instance, the project was developed using Open MPI which is open source and can be downloaded from its official [website](https://www.open-mpi.org/).
@@ -68,11 +65,9 @@ To launch the program:
 - Compile the code using the command: `mpic++ -o main Main.cpp Simulator.cpp Simulator.h SimulationParameters.h -lmosquitto`
 - Run the program with the requested parameters, for example: `mpirun -np 2 ./main 1000 1000 16 16 60 80 2 4 5.0 14.0 15 100 41.903641 12.466195`
 
-The compiling process requires the download and installation of the mosquitto library from the official site [website](https://mosquitto.org/download/) and its linking to the program. <!-- is it right that the library has to be linked to the program? -->
-<!-- While running the process you can specify the number of processes to allocate. -->
+The compiling process requires the download and installation of the mosquitto library from the official site [website](https://mosquitto.org/download/) and its linking during compilation.
 
-To shut down the system:
-- Press `Ctrl + C` in the WSL terminal
+To shut down the system, simply press `Ctrl + C` in the WSL terminal.
 
 ### Node-RED
 Node-RED was run natively on a Windows machine; to install it, follow the instructions provided on the Node-RED [website](https://nodered.org/docs/getting-started/local). You should be able to run it, then, just by typing the `node-red` command in the `cmd` shell.
