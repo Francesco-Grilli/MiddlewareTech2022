@@ -29,13 +29,13 @@ To configure Mosquitto
 - Modify the configuration file of mosquitto with `sudo nano /etc/mosquitto/mosquitto.conf`
 - Add 
 
-	`connection bridge-01
+	`connection bridge-01`
 	
-	address mqtt.neslab.it:3200
+	`address mqtt.neslab.it:3200`
 	
-	topic # out 0
+	`topic # out 0`
 	
-	topic # in 0`
+	`topic # in 0`
 - Save the file and restart the service `sudo service mosquitto restart`
 
 To launch the simulation
