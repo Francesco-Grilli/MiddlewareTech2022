@@ -28,10 +28,10 @@ Contiki-NG is an open-source, cross-platform operating system for Next-Generatio
 To configure Mosquitto
 - Modify the configuration file of mosquitto with `sudo nano /etc/mosquitto/mosquitto.conf`
 - Add 
-      `connection bridge-01 
-	    address mqtt.neslab.it:3200 
-      topic # out 0
-	    topic # in 0`
+      `connection bridge-01 \n
+	    address mqtt.neslab.it:3200 \n
+      topic # out 0 \n
+	    topic # in 0 \n`
 - Save the file and restart the service `sudo service mosquitto restart`
 
 To launch the simulation
