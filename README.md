@@ -18,7 +18,7 @@ This project was developed as main assignment for the course of Middleware Techn
 
 Project-related documents are available at the following links:
 - [Specifications](https://github.com/Francesco-Grilli/MiddlewareTech2022/blob/main/Middleware%20Technologies%20Projects%202022.pdf)
-- Documentation
+- [Documentation](https://github.com/Francesco-Grilli/MiddlewareTech2022/blob/main/Noise%20data%20collection%20and%20analysis%20-%20docs.pdf)
 
 ## Tested configuration
 The project has been carefully tested under the following configuration; all the system setup information, thus, refers to the configuration which is mentioned hereby: 
