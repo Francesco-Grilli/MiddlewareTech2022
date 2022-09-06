@@ -1,24 +1,32 @@
 # Noise data production and analysis
-This project was developed as main assignment for the course of Middleware Technologies for Distributed Systems at Politecnico di Milano during academic year 2021-22
+This project was developed as main assignment for the course of Middleware Technologies for Distributed Systems at [Politecnico di Milano](https://polimi.it) during academic year 2021-22.
 
 ## Index
 
+- [Documents](#documents)
 - [Tested configuration](#tested-configuration)
 - [System setup](#system-setup)
 - [Troubleshooting](#troubleshooting)
 - [Contributors](#contributors)
 
+## Documents
+
+Project-related documents are available at the following links:
+- [Specifications](https://github.com/Francesco-Grilli/MiddlewareTech2022/blob/main/Middleware%20Technologies%20Projects%202022.pdf)
+- Documentation
+
 ## Tested configuration
-The project has been carefully tested under the following configuration; all the system setup information, refers to the configuration which is mentioned hereby: 
-- A virtual machine for the ContikiNG part (running on a Linux machine) <!-- Improve this description -->
-- A Windows computer to run the MPI simulation <!-- Improve this description -->
+The project has been carefully tested under the following configuration; all the system setup information, thus, refers to the configuration which is mentioned hereby: 
+- A virtual machine for the ContikiNG part (running on a Linux machine)
+- A Windows computer to run the MPI simulation
 - A Windows computer to host Node-RED, Spark and Kafka sections.
 
 ## System setup
 <!-- Insert explanations to setup Contiki and MPI parts -->
 
 ### Node-RED
-Node-RED was run natively on a Windows machine; to install it, follow the instructions provided on the Node-RED [website](https://nodered.org/docs/getting-started/local). You should be able to run it, then, just by inserting the `node-red` command.
+Node-RED was run natively on a Windows machine; to install it, follow the instructions provided on the Node-RED [website](https://nodered.org/docs/getting-started/local). You should be able to run it, then, just by typing the `node-red` command in the `cmd` shell.
+To stop the program, just press `Ctrl + C` from the shell in which Node-RED is running.
 
 ### Spark
 Due to this technology's limitations, Spark was run on WSL, instead of natively on the machine. A good introduction to Apache Spark on WSL can be found [here](https://nicolosonnino.it/spark-on-wsl/). 
@@ -43,7 +51,7 @@ Following the aforementioned guide, the broker was launched starting the powersh
 The program can be then gently shut down pressing `Ctrl + C`.
 
 ## Troubleshooting
-- In case you haven't deployed the Spark master with the default configuration, the project couldn't be submitted; that's due to the fact that the project gets the path to the Spark master from its own configuration file, called `settings.json`.. To fix this issue, just replace the Spark master's location in the configuration file with your actual deployment location.
+- In case you haven't deployed the Spark master with the default configuration, the project couldn't be submitted; that's due to the fact that the project gets the path to the Spark master from its own configuration file, called `settings.json`. To fix this issue, just replace the Spark master's location in the configuration file with your actual deployment location.
 
 ## Contributors
 - [Gibellini Federico](https://github.com/gblfrc)
