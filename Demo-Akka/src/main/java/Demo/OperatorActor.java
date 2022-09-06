@@ -75,11 +75,11 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
 
         this.myWindow.addFirst(message);
 
-        System.out.println("|||||||||||||||||||||");
+        /*System.out.println("|||||||||||||||||||||");
         for(DataMessage m : this.myWindow){
             System.out.println(m.getData().second());
         }
-        System.out.println("|||||||||||||||||||||");
+        System.out.println("|||||||||||||||||||||");*/
 
         DataMessage reply;
 
@@ -115,9 +115,9 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
         LinkedList<DataMessage> temporaryList = ((State)ss.snapshot()).getDataCopy();
 
         System.out.println("In recovery method");
-        for(DataMessage m : temporaryList){
+        /*for(DataMessage m : temporaryList){
             System.out.println(m.getData().second());
-        }
+        }*/
 
         LinkedList<DataMessage> emptyList = new LinkedList<>();
 
@@ -136,10 +136,10 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
 
         this.myWindow = emptyList;
 
-        System.out.println("Printing recovered state");
+        /*System.out.println("Printing recovered state");
         for(int k=0; k<this.myWindow.size(); k++){
             System.out.println(this.myWindow.get(k).getData().second());
-        }
+        }*/
 
         DataMessage reply;
         if(isPipeFull()){
@@ -150,10 +150,10 @@ public abstract class OperatorActor extends AbstractPersistentActorWithAtLeastOn
             System.out.println(getSelf().path().name() + ": " + reply.getData().second());
         }
 
-        System.out.println("Printing recovered state after sending message");
+        /*System.out.println("Printing recovered state after sending message");
         for(int k=0; k<this.myWindow.size(); k++){
             System.out.println(this.myWindow.get(k).getData().second());
-        }
+        }*/
 
     }
 

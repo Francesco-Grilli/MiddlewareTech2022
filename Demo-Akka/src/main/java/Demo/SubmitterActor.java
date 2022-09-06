@@ -33,11 +33,11 @@ public class SubmitterActor extends AbstractActor {
                 this.supervisor1 = future.result(scala.concurrent.duration.Duration.create(5, TimeUnit.MINUTES), null);
             } catch (InterruptedException | TimeoutException | ActorInitializationException | ActorNotFound e) {
                 System.out.println("Error, next stage not found, waiting for the next stage to be instantiated");
-                Thread.sleep(2000);
+                Thread.sleep(5000);
             }
         }
 
-        System.out.println("OK 1");
+        System.out.println("Connected to Supervisor 1");
 
         for(int i=0; i<numberReconnection && this.supervisor2==null; i++) {
             try {
@@ -45,11 +45,11 @@ public class SubmitterActor extends AbstractActor {
                 this.supervisor2 = future.result(scala.concurrent.duration.Duration.create(5, TimeUnit.MINUTES), null);
             } catch (InterruptedException | TimeoutException | ActorInitializationException | ActorNotFound e) {
                 System.out.println("Error, next stage not found, waiting for the next stage to be instantiated");
-                Thread.sleep(2000);
+                Thread.sleep(5000);
             }
         }
 
-        System.out.println("OK 2");
+        System.out.println("Connected to Supervisor 2");
 
         for(int i=0; i<numberReconnection && this.supervisor3==null; i++) {
             try {
@@ -57,11 +57,11 @@ public class SubmitterActor extends AbstractActor {
                 this.supervisor3 = future.result(scala.concurrent.duration.Duration.create(5, TimeUnit.MINUTES), null);
             } catch (InterruptedException | TimeoutException | ActorInitializationException | ActorNotFound e) {
                 System.out.println("Error, next stage not found, waiting for the next stage to be instantiated");
-                Thread.sleep(2000);
+                Thread.sleep(5000);
             }
         }
 
-        System.out.println("OK 3");
+        System.out.println("Connected to Supervisor 3");
 
         Thread.sleep(1000*10);
 

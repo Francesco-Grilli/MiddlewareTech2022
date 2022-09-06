@@ -16,7 +16,7 @@ public class Main {
     public static void run(String[] args){
 
         try {
-            FileUtils.cleanDirectory(new File("../AkkaDemo/snapshots"));
+            FileUtils.cleanDirectory(new File("../Demo-Akka/snapshots"));
         } catch (IOException e) {
             e.printStackTrace();
         }
