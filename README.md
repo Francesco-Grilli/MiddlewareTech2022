@@ -24,7 +24,7 @@ The project has been carefully tested under the following configuration; all the
 ## System setup
 <!-- Insert explanations to setup Contiki-->
 
-###MPI
+### MPI
 Message Passing Interface (MPI) is a portable message-passing standard designed to function on parallel computing architectures. There are several open source implementation for instance we have chosen Open MPI which is open source: [website](https://www.open-mpi.org/).
 In order to compile and run program for MPI on Windows you need to download WSL and follow the instruction on the official website.
 To launch the program:
