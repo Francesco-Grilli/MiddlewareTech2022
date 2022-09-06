@@ -24,6 +24,7 @@ The project has been carefully tested under the following configuration; all the
 ## System setup
 ### Contiki-ng
 Contiki-NG is an open-source, cross-platform operating system for Next-Generation IoT devices, it can be easily downloaded from the official [repository](https://github.com/contiki-ng/contiki-ng) however the new-est versions might not be compatible expecially with the introduction of MQTT v.5, to access a remote broker [mosquitto](https://mosquitto.org/download/) will be needed, to launch cooja we need either [apache-ant](https://ant.apache.org) or gradle depending on the branch of the repo (this project is done with ant but the Contiki-ng-group is slowly shifting towards gradle), and JAVA 11 at least, other needed tools are the gcc compiler and the make tool (assumed already present on an interested configuration).
+
 To configure Mosquitto
 - Modify the configuration file of mosquitto with `sudo nano /etc/mosquitto/mosquitto.conf`
 - Add 
