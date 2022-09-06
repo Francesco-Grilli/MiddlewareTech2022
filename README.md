@@ -22,7 +22,21 @@ The project has been carefully tested under the following configuration; all the
 - A Windows computer to host Node-RED, Spark and Kafka sections.
 
 ## System setup
-<!-- Insert explanations to setup Contiki and MPI parts -->
+<!-- Insert explanations to setup Contiki-->
+
+###MPI
+Message Passing Interface (MPI) is a portable message-passing standard designed to function on parallel computing architectures. There are several open source implementation for instance we have chosen Open MPI which is open source: [website](https://www.open-mpi.org/).
+In order to compile and run program for MPI on Windows you need to download WSL and follow the instruction on the official website.
+To launch the program:
+- Compile the code using the command: mpic++ -o main Main.cpp Simulator.cpp Simulator.h SimulationParameters.h -lmosquitto
+- Run the program with the parameters requested: mpirun -np 2 ./main 1000 1000 16 16 60 80 2 4 5.0 14.0 15 100 41.903641 12.466195
+
+The compiling process require the installation of the mosquitto library from the official site [website](https://mosquitto.org/download/) and the linking of it.
+While running the process you can specify the number of processes to allocate.
+
+To shut down the system:
+- Press 'Ctrl + C' in the WSL terminal
+
 
 ### Node-RED
 Node-RED was run natively on a Windows machine; to install it, follow the instructions provided on the Node-RED [website](https://nodered.org/docs/getting-started/local). You should be able to run it, then, just by typing the `node-red` command in the `cmd` shell.
