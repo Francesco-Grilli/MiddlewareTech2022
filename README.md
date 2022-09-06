@@ -50,7 +50,7 @@ After about 30-40 seconds the motes will start to connect and post data
 
 Advice: we recommend having the Node-red bubble already up and running and to attempt the connection of the border router once the mote is actually started to avouid bugs
 
-The Linux virtual machine was our choice since during testing the cooja application would sometime crash however the virtualization step is not mandatory to run this part of the project. 
+The Linux virtual machine was our choice since during development the cooja application would sometime crash however the virtualization step is not mandatory to run this part of the project. 
 
 
 ### MPI
